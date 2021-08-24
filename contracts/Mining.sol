@@ -22,7 +22,7 @@ contract Mining is Ownable, IMining {
     // Info of each user.
     struct UserInfo {
         Role userRole;
-        uint256 amount; // How many LP tokens the user has provided.
+        uint256 amount; // How many staked tokens the user has provided.
         uint256 DACMemberCount; // How many members this user invite.
         uint256 accPower; // Accumulated power for user mining.
         uint256 rewardDebt; // Reward debt
@@ -54,7 +54,7 @@ contract Mining is Ownable, IMining {
     PoolInfo[] public poolInfo;
     // Addresses of creators
     EnumerableSet.AddressSet private creators;
-    // Info of each user that stakes LP tokens.
+    // Info of each user that stakes staked tokens.
     mapping(uint => mapping(address => UserInfo)) private userInfo;
     // Return creator of the specific member address
     mapping(address => address) public creatorOf;
@@ -74,13 +74,11 @@ contract Mining is Ownable, IMining {
     constructor(
         IMetisToken _Metis,
         IVault _vault,
-        IDAC _DAC,
         uint256 _MetisPerSecond,
         uint256 _startTimestamp
     ) public {
         Metis = _Metis;
         vault = _vault;
-        DAC = _DAC;
         MetisPerSecond = _MetisPerSecond;
         startTimestamp = _startTimestamp;
     }
@@ -232,7 +230,11 @@ contract Mining is Ownable, IMining {
                 uint256 totalStep = _DACMemberCount.sub(2).mul(POWER_STEP_SIZE);
                 addedPower = addedPower.add(INITIAL_POWER_STEP_SIZE).add(totalStep);
             }
-            creator.accPower = _initialDACPower.add(addedPower);
+            uint256 accPower = _initialDACPower.add(addedPower);
+            if (accPower > MAX_ACC_POWER) {
+                accPower = MAX_ACC_POWER;
+            }
+            creator.accPower = accPower;
             IERC20(pool.token).safeTransferFrom(_user, address(this), _amount);
         }
         user.rewardDebt = user.amount.mul(user.accPower).mul(pool.accMetisPerShare).div(1e18);
@@ -336,6 +338,91 @@ contract Mining is Ownable, IMining {
             Metis.approve(address(vault), _amount);
             vault.enter(_amount, _user);
         }
+    }
+
+    /* ========== RESTRICTED FUNCTIONS ========== */
+
+    // Add a new staked token to the pool. Can only be called by the owner.
+    function add(uint256 _allocPoint, address _token, bool _withUpdate) external onlyOwner checkDuplicatePool(_token) {
+        if (_withUpdate) {
+            massUpdatePools();
+        }
+        uint256 lastRewardTimestamp = block.timestamp > startTimestamp ? block.timestamp : startTimestamp;
+        totalAllocPoint = totalAllocPoint.add(_allocPoint);
+        poolInfo.push(
+            PoolInfo({
+                token: _token,
+                allocPoint: _allocPoint,
+                lastRewardTimestamp: lastRewardTimestamp,
+                accMetisPerShare: 0,
+                totalStakedAmount: 0
+            })
+        );
+        tokenToPid[_token] = poolInfo.length; // pid 0 reserved for 'pool does not exist'
+    }
+
+    // Update the given pool's Metis allocation point. Can only be called by the owner.
+    function set(address _token, uint256 _allocPoint, bool _withUpdate) external onlyOwner onlyValidPool(_token){
+        if (_withUpdate) {
+            massUpdatePools();
+        }
+        uint pid = tokenToPid[_token];
+        totalAllocPoint = totalAllocPoint.sub(poolInfo[pid - 1].allocPoint).add(_allocPoint);
+        poolInfo[pid - 1].allocPoint = _allocPoint;
+    }
+
+    function setMetisPerSecond(uint256 _MetisPerSecond) external onlyOwner {
+        massUpdatePools();
+        MetisPerSecond = _MetisPerSecond;
+    }
+
+    function setVault(IVault _vault) external onlyOwner {
+        vault = _vault;
+    }
+
+    function setDAC(IDAC _DAC) external onlyOwner {
+        DAC = _DAC;
+    }
+
+    function setMinDeposit(uint256 _min) external onlyOwner {
+        MIN_DEPOSIT = _min;
+    }
+
+    function setMaxDeposit(uint256 _max) external onlyOwner {
+        MAX_DEPOSIT = _max;
+    }
+
+    function setMaxAccPower(uint256 _max) external onlyOwner {
+        MAX_ACC_POWER = _max;
+    }
+
+    function setPowerStepSize(uint256 _size) external onlyOwner {
+        POWER_STEP_SIZE = _size;
+    }
+
+    function setInitialPowerStepSize(uint256 _size) external onlyOwner {
+        INITIAL_POWER_STEP_SIZE = _size;
+    }
+
+    function setMemberPower(uint256 _power) external onlyOwner {
+        MEMBER_POWER = _power;
+    }
+
+    function setStartTimestamp(uint256 _startTimestamp) external onlyOwner {
+        require(block.number < _startTimestamp, "Cannot change startTimestamp after reward start");
+        startTimestamp = _startTimestamp;
+        // reinitialize lastRewardBlock of all existing pools (if any)
+        uint256 length = poolInfo.length;
+        for (uint256 pid = 1; pid <= length; ++pid) {
+            PoolInfo storage pool = poolInfo[pid - 1];
+            pool.lastRewardTimestamp = _startTimestamp;
+        }
+    }
+
+    // Update team address by the previous team address.
+    function setTeamAddr(address _teamAddr) external {
+        require(msg.sender == teamAddr, "dev: wut?");
+        teamAddr = _teamAddr;
     }
 
     /* ========== MODIFIERS ========== */

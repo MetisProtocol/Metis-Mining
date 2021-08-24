@@ -691,7 +691,7 @@ contract MockMetisToken is Context, ERC20, ERC20Detailed, Ownable {
        public
     {
         for (uint256 i = 0; i < minters.length; ++i) {
-	    _minters.add(minters[i]);
+	        _minters.add(minters[i]);
         }
         minters_ = minters;
         maxSupply_ = maxSupply;
