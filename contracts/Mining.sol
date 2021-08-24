@@ -105,6 +105,14 @@ contract Mining is Ownable, IMining {
         return user.amount.mul(user.accPower).mul(accMetisPerShare).div(1e18).sub(user.rewardDebt);
     }
 
+    function checkUserInfo(uint256 _pid, address _user) 
+        external view returns (Role userRole, uint256 amount, uint256 DACMemberCount, uint256 accPower) {
+        userRole = userInfo[_pid][_user].userRole;
+        amount = userInfo[_pid][_user].amount;
+        DACMemberCount = userInfo[_pid][_user].DACMemberCount;
+        accPower = userInfo[_pid][_user].accPower;
+    }
+
     /* ========== MUTATIVE FUNCTIONS ========== */
 
     // Update reward vairables for all pools. Be careful of gas spending!

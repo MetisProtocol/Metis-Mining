@@ -29,7 +29,7 @@ contract MockDAC is IDAC {
     function creatorDeposit(uint256 _amount, uint256 _DACMemberCount, uint256 _initialDACPower) public {
         // check allowance of spender
         require(
-            IMetisToken.allowance(msg.sender, address(miningContract)) >= _amount, 
+            metis.allowance(msg.sender, address(miningContract)) >= _amount, 
             "Not enough allowance for mining contract"
         );
         miningContract.creatorDeposit(msg.sender, address(metis), _amount, _DACMemberCount, _initialDACPower);
@@ -38,7 +38,7 @@ contract MockDAC is IDAC {
     function memberDeposit(address _creator, uint256 _amount, uint256 _DACMemberCount, uint256 _initialDACPower) public {
         // check allowance of spender
         require(
-            IMetisToken.allowance(msg.sender, address(miningContract)) >= _amount, 
+            metis.allowance(msg.sender, address(miningContract)) >= _amount, 
             "Not enough allowance for mining contract"
         );
         miningContract.memberDeposit(_creator, msg.sender, address(metis), _amount, _DACMemberCount, _initialDACPower);
