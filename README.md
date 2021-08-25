@@ -17,7 +17,7 @@ yarn compile
 
 Create `.env` in root folder and add mnemonic into it, referring to `.env-example`
 
-Deploy
+Deploy to Metis Network
 
 ```
 yarn deploy
