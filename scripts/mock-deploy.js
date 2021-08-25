@@ -6,29 +6,21 @@ async function main() {
     const signer = accounts[0].address;
     console.log('signer:', signer);
 
-    let MetisTokenAddr;
-    if (!process.env.MetisToken) {
-        throw new Error("Please set your MetisToken contract address in a .env file");
-    } else {
-        MetisTokenAddr = process.env.MetisToken;
-    }
-
-    let DACAddr;
-    if (!process.env.DAC) {
-        throw new Error("Please set your DAC contract address in a .env file");
-    } else {
-        DACAddr = process.env.DAC;
-    }
-
+    const MockMetisTokenFactory = await hre.ethers.getContractFactory('MockMetisToken');
+    const MockDACFactory = await hre.ethers.getContractFactory('MockDAC');
     const VaultFactory = await hre.ethers.getContractFactory('Vault');
     const MiningFactory = await hre.ethers.getContractFactory('Mining');
+    // (10000000 * 1e18)
+    const MockMetis = await MockMetisTokenFactory.deploy([signer], '10000000000000000000000000');
+    await MockMetis.deployed();
+    console.log('MockMetis deployed to: ', MockMetis.address);
 
     const Vault = await VaultFactory.deploy(MockMetis.address);
     await Vault.deployed();
     console.log('Vault deployed to: ', Vault.address);
 
     const Mining = await MiningFactory.deploy(
-        MetisTokenAddr,
+        MockMetis.address,
         Vault.address,
         '18500000000000000',
         Math.round(Date.now() / 1000) + 100,
@@ -36,17 +28,23 @@ async function main() {
     await Mining.deployed();
     console.log('Mining deployed to: ', Mining.address);
 
+    const MockDAC = await MockDACFactory.deploy(
+        Mining.address,
+        MockMetis.address,
+    );
+    await MockDAC.deployed();
+    console.log('MockDAC deployed to: ', MockDAC.address);
+
     const addresses = {
+        MockMetis: MockMetis.address,
+        MockDAC: MockDAC.address,
         Mining: Mining.address,
         Vault: Vault.address,
     };
 
     console.log(addresses);
 
-    // set DAC for Mining contract
-    await Mining.functions['setDAC'](DACAddr, { gasLimit: 24000000 });
-
-    fs.writeFileSync(`${__dirname}/addresses.json`, JSON.stringify(addresses, null, 4));
+    fs.writeFileSync(`${__dirname}/mock-addresses.json`, JSON.stringify(addresses, null, 4));
 }
 
 // We recommend this pattern to be able to use async/await everywhere

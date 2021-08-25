@@ -1,14 +1,14 @@
 {
-  "name": "metis-swap-contracts",
+  "name": "metis-mining",
   "version": "0.1.0",
   "description": "",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "compile": "hardhat compile",
+    "mock-deploy": "hardhat run scripts/mock-deploy.js --network metis",
     "deploy": "hardhat run scripts/deploy.js --network metis"
   },
-  "author": "lilinpu <llp0574@gmail.com> (https://github.com/llp0574)",
   "license": "MIT",
   "devDependencies": {
     "@metis.io/hardhat-mvm": "^0.2.5",
