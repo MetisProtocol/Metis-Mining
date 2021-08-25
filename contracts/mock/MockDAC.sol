@@ -29,7 +29,14 @@ contract MockDAC is IDAC, Ownable {
             metis.allowance(msg.sender, address(miningContract)) >= _amount, 
             "Not enough allowance for mining contract"
         );
-        miningContract.creatorDeposit(msg.sender, address(metis), _amount, _DACMemberCount, _initialDACPower);
+        miningContract.deposit(
+            address(0), 
+            msg.sender, 
+            miningContract.tokenToPid(address(metis)), 
+            _amount, 
+            _DACMemberCount, 
+            _initialDACPower
+        );
     }
 
     function memberDeposit(address _creator, uint256 _amount, uint256 _DACMemberCount, uint256 _initialDACPower) public {
@@ -38,7 +45,14 @@ contract MockDAC is IDAC, Ownable {
             metis.allowance(msg.sender, address(miningContract)) >= _amount, 
             "Not enough allowance for mining contract"
         );
-        miningContract.memberDeposit(_creator, msg.sender, address(metis), _amount, _DACMemberCount, _initialDACPower);
+        miningContract.deposit(
+            _creator, 
+            msg.sender, 
+            miningContract.tokenToPid(address(metis)), 
+            _amount, 
+            _DACMemberCount, 
+            _initialDACPower
+        );
     }
 
     function dismissDAC(address _creator) public override returns (bool) {
@@ -47,7 +61,7 @@ contract MockDAC is IDAC, Ownable {
 
     function DAODismiss() public returns (bool) {
         require(DAO_OPEN, "DAO is not opened");
-        miningContract.dismissDAC(address(metis), msg.sender);
+        miningContract.dismissDAC(miningContract.tokenToPid(address(metis)), msg.sender);
         emit DismissDAC(msg.sender);
     }
 
