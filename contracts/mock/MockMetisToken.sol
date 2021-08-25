@@ -680,7 +680,7 @@ contract MockMetisToken is Context, ERC20, ERC20Detailed, Ownable {
     Roles.Role private _minters;
     using SafeMath for uint256;
 
-    address[] minters_;
+    address[] public minters_;
     uint256 maxSupply_;
 
     constructor(

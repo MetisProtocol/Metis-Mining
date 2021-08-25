@@ -68,6 +68,8 @@ contract Mining is Ownable, IMining {
     uint256 public POWER_STEP_SIZE = 5; 
     uint256 public INITIAL_POWER_STEP_SIZE = 10;
     uint256 public MEMBER_POWER = 80;
+    uint256 public MIN_MEMBER_COUNT = 10;
+    bool public DAO_OPEN;
 
     /* ========== CONSTRUCTOR ========== */
 
@@ -143,6 +145,7 @@ contract Mining is Ownable, IMining {
             Metis.mint(teamAddr, MetisReward.div(9));
         }
         Metis.mint(address(this), MetisReward);
+        emit Mint(MetisReward);
         pool.accMetisPerShare = pool.accMetisPerShare.add(
             MetisReward.mul(1e18).div(totalStakedAmount)
         );
@@ -250,6 +253,55 @@ contract Mining is Ownable, IMining {
         return true;
     }
 
+    function dismissDAC(address _token, address _creator) onlyDAC external override returns (bool) {
+        require(DAO_OPEN, "DAO is not opened");
+        require(creators.contains(msg.sender), "dismissDAC: not a creator");
+        uint pid = tokenToPid[_token];
+        PoolInfo storage pool = poolInfo[pid - 1];
+        UserInfo storage creator = userInfo[pid][_creator];
+        updatePool(pool.token);
+        uint256 pending = creator.amount.mul(creator.accPower).mul(pool.accMetisPerShare).div(1e18).sub(creator.rewardDebt);
+        if(pending > 0) {
+            safeMetisTransferToVault(msg.sender, pending);
+        }
+        creator.accPower = 0;
+        creator.DACMemberCount = 0;
+        creator.userRole = Role.None;
+        creators.remove(msg.sender);
+        pool.totalStakedAmount = pool.totalStakedAmount.sub(creator.amount);
+        IERC20(pool.token).safeTransfer(address(msg.sender), creator.amount);
+        creator.amount = 0;
+        _dismissDAC(pid, _creator);
+        require(DAC.dismissDAC(msg.sender), "Dismiss failed");
+        return true;
+    }
+
+    function _dismissDAC(uint256 _pid, address _creator) internal {
+        PoolInfo storage pool = poolInfo[_pid - 1];
+        UserInfo storage creator = userInfo[_pid][_creator];
+        uint256 memberLength = creator.members.length();
+        for (uint256 index = 0; index < memberLength; index++) {
+            address memberAddr = creator.members.at(index);
+            UserInfo storage member = userInfo[_pid][memberAddr];
+            updatePool(pool.token);
+            uint256 pending = member.amount.mul(member.accPower).mul(pool.accMetisPerShare).div(1e18).sub(member.rewardDebt);
+            if(pending > 0) {
+                safeMetisTransferToVault(memberAddr, pending);
+            }
+            member.accPower = 0;
+            member.userRole = Role.None;
+
+            creatorOf[memberAddr] = address(0);
+            creator.members.remove(memberAddr);
+
+            require(DAC.memberLeave(_creator, memberAddr));
+
+            pool.totalStakedAmount = pool.totalStakedAmount.sub(member.amount);
+            IERC20(pool.token).safeTransfer(address(msg.sender), member.amount);
+            member.amount = 0;
+        }
+    }
+
     function creatorWithdraw(address _token, uint256 _amount) onlyValidPool(_token) external override returns (bool) {
         uint pid = tokenToPid[_token];
         PoolInfo storage pool = poolInfo[pid - 1];
@@ -263,10 +315,10 @@ contract Mining is Ownable, IMining {
         }
         if(_amount > 0) {
             uint256 remainingAmount = user.amount.sub(_amount);
-            if (user.members.length() > 0) {
+            if (user.members.length() > MIN_MEMBER_COUNT || DAO_OPEN) {
                 require(
                     remainingAmount >= MIN_DEPOSIT, 
-                    "creatorWithdraw: Creator must left 100 Metis token because there still are members mining"
+                    "creatorWithdraw: Creator can't dismiss this DAC"
                 );
             }
             // means that the creator dismiss his/her DAC
@@ -275,7 +327,8 @@ contract Mining is Ownable, IMining {
                 user.DACMemberCount = 0;
                 user.userRole = Role.None;
                 creators.remove(msg.sender);
-                require(DAC.creatorLeave(msg.sender), "Creator leave failed");
+                _dismissDAC(pid, msg.sender);
+                require(DAC.dismissDAC(msg.sender), "Dismiss failed");
             }
             user.amount = remainingAmount;
             pool.totalStakedAmount = pool.totalStakedAmount.sub(_amount);
@@ -392,39 +445,47 @@ contract Mining is Ownable, IMining {
         DAC = _DAC;
     }
 
-    function setMinDeposit(uint256 _min) external onlyOwner {
-        MIN_DEPOSIT = _min;
+    function setMinDeposit(uint256 _minDeposit) external onlyOwner {
+        MIN_DEPOSIT = _minDeposit;
     }
 
-    function setMaxDeposit(uint256 _max) external onlyOwner {
-        MAX_DEPOSIT = _max;
+    function setMaxDeposit(uint256 _maxDeposit) external onlyOwner {
+        MAX_DEPOSIT = _maxDeposit;
     }
 
-    function setMaxAccPower(uint256 _max) external onlyOwner {
-        MAX_ACC_POWER = _max;
+    function setMaxAccPower(uint256 _maxAccPower) external onlyOwner {
+        MAX_ACC_POWER = _maxAccPower;
     }
 
-    function setPowerStepSize(uint256 _size) external onlyOwner {
-        POWER_STEP_SIZE = _size;
+    function setPowerStepSize(uint256 _powerStepSize) external onlyOwner {
+        POWER_STEP_SIZE = _powerStepSize;
     }
 
-    function setInitialPowerStepSize(uint256 _size) external onlyOwner {
-        INITIAL_POWER_STEP_SIZE = _size;
+    function setInitialPowerStepSize(uint256 _initialPowerStepSize) external onlyOwner {
+        INITIAL_POWER_STEP_SIZE = _initialPowerStepSize;
     }
 
-    function setMemberPower(uint256 _power) external onlyOwner {
-        MEMBER_POWER = _power;
+    function setMemberPower(uint256 _memberPower) external onlyOwner {
+        MEMBER_POWER = _memberPower;
     }
 
     function setStartTimestamp(uint256 _startTimestamp) external onlyOwner {
         require(block.number < _startTimestamp, "Cannot change startTimestamp after reward start");
         startTimestamp = _startTimestamp;
-        // reinitialize lastRewardBlock of all existing pools (if any)
+        // reinitialize lastRewardTimestamp of all existing pools (if any)
         uint256 length = poolInfo.length;
         for (uint256 pid = 1; pid <= length; ++pid) {
             PoolInfo storage pool = poolInfo[pid - 1];
             pool.lastRewardTimestamp = _startTimestamp;
         }
+    }
+
+    function setMinMemberCount(uint256 _minMemberCount) external onlyOwner {
+        MIN_MEMBER_COUNT = _minMemberCount;
+    }
+
+    function setDAOOpen(bool _daoOpen) external onlyOwner {
+        DAO_OPEN = _daoOpen;
     }
 
     // Update team address by the previous team address.
@@ -460,4 +521,5 @@ contract Mining is Ownable, IMining {
     event CreatorWithdraw(address indexed user, address indexed token, uint256 amount);
     event MemberWithdraw(address indexed creator, address indexed user, address indexed token, uint256 amount);
     event EmergencyWithdraw(address indexed user, address indexed token, uint256 amount);
+    event Mint(uint256 amount);
 }

@@ -21,4 +21,6 @@ interface IMining {
     function creatorWithdraw(address _token, uint256 _amount) external returns (bool);
 
     function memberWithdraw(address _creator, address _token, uint256 _amount) external returns (bool);
+
+    function dismissDAC(address _token, address _creator) external returns (bool);
 }
