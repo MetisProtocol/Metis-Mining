@@ -275,7 +275,7 @@ contract Mining is Ownable, IMining {
                 user.DACMemberCount = 0;
                 user.userRole = Role.None;
                 creators.remove(msg.sender);
-                require(DAC.creatorLeave(msg.sender), "Creatro leave failed");
+                require(DAC.creatorLeave(msg.sender), "Creator leave failed");
             }
             user.amount = remainingAmount;
             pool.totalStakedAmount = pool.totalStakedAmount.sub(_amount);
