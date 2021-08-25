@@ -152,6 +152,27 @@ contract Mining is Ownable, IMining {
         pool.lastRewardTimestamp = block.timestamp;
     }
 
+    function _sendPending(uint256 _pid, address _user) internal {
+        PoolInfo memory pool = poolInfo[_pid - 1];
+        UserInfo memory user = userInfo[_pid][_user];
+        uint256 pending = user.amount.mul(user.accPower).mul(pool.accMetisPerShare).div(1e18).sub(user.rewardDebt);
+        if(pending > 0) {
+            safeMetisTransferToVault(_user, pending);
+        }
+    }
+
+    function _calcAccPowerForCreator(uint256 _initialDACPower, uint256 _DACMemberCount) internal view returns (uint256 accPower) {
+        uint256 addedPower = 0;
+        if (_DACMemberCount == 2) {
+            addedPower = addedPower.add(INITIAL_POWER_STEP_SIZE);
+        } else if (_DACMemberCount > 2) {
+            uint256 totalStep = _DACMemberCount.sub(2).mul(POWER_STEP_SIZE);
+            addedPower = addedPower.add(INITIAL_POWER_STEP_SIZE).add(totalStep);
+        }
+        accPower = _initialDACPower.add(addedPower);
+        accPower = accPower > MAX_ACC_POWER ? MAX_ACC_POWER : accPower;
+    }
+
     function creatorDeposit(
         address _user, 
         address _token, 
@@ -165,24 +186,14 @@ contract Mining is Ownable, IMining {
         UserInfo storage user = userInfo[pid][_user];
         updatePool(pool.token);
         if (user.amount > 0) {
-            uint256 pending = user.amount.mul(user.accPower).mul(pool.accMetisPerShare).div(1e18).sub(user.rewardDebt);
-            if(pending > 0) {
-                safeMetisTransferToVault(_user, pending);
-            }
+            _sendPending(pid, _user);
         }
         if (_amount > 0) {
             uint256 remainingAmount = user.amount.add(_amount);
             require(remainingAmount >= MIN_DEPOSIT && remainingAmount <= MAX_DEPOSIT, "Deposit amount is invalid");
             user.amount = remainingAmount;
             user.DACMemberCount = _DACMemberCount;
-            uint256 addedPower = 0;
-            if (_DACMemberCount == 2) {
-                addedPower = addedPower.add(INITIAL_POWER_STEP_SIZE);
-            } else if (_DACMemberCount > 2) {
-                uint256 totalStep = _DACMemberCount.sub(2).mul(POWER_STEP_SIZE);
-                addedPower = addedPower.add(INITIAL_POWER_STEP_SIZE).add(totalStep);
-            }
-            user.accPower = _initialDACPower.add(addedPower);
+            user.accPower = _calcAccPowerForCreator(_initialDACPower, _DACMemberCount);
             user.userRole = Role.Creator;
             pool.totalStakedAmount = pool.totalStakedAmount.add(_amount);
             IERC20(pool.token).safeTransferFrom(_user, address(this), _amount);
@@ -219,10 +230,7 @@ contract Mining is Ownable, IMining {
         }
         updatePool(pool.token);
         if (user.amount > 0) {
-            uint256 pending = user.amount.mul(user.accPower).mul(pool.accMetisPerShare).div(1e18).sub(user.rewardDebt);
-            if(pending > 0) {
-                safeMetisTransferToVault(_user, pending);
-            }
+            _sendPending(pid, _user);
         }
         if (_amount > 0) {
             uint256 remainingAmount = user.amount.add(_amount);
@@ -234,18 +242,8 @@ contract Mining is Ownable, IMining {
 
             // update creator information
             creator.DACMemberCount = _DACMemberCount;
-            uint256 addedPower = 0;
-            if (_DACMemberCount == 2) {
-                addedPower = addedPower.add(INITIAL_POWER_STEP_SIZE);
-            } else if (_DACMemberCount > 2) {
-                uint256 totalStep = _DACMemberCount.sub(2).mul(POWER_STEP_SIZE);
-                addedPower = addedPower.add(INITIAL_POWER_STEP_SIZE).add(totalStep);
-            }
-            uint256 accPower = _initialDACPower.add(addedPower);
-            if (accPower > MAX_ACC_POWER) {
-                accPower = MAX_ACC_POWER;
-            }
-            creator.accPower = accPower;
+            creator.accPower = _calcAccPowerForCreator(_initialDACPower, _DACMemberCount);
+
             IERC20(pool.token).safeTransferFrom(_user, address(this), _amount);
         }
         user.rewardDebt = user.amount.mul(user.accPower).mul(pool.accMetisPerShare).div(1e18);
@@ -260,10 +258,7 @@ contract Mining is Ownable, IMining {
         PoolInfo storage pool = poolInfo[pid - 1];
         UserInfo storage creator = userInfo[pid][_creator];
         updatePool(pool.token);
-        uint256 pending = creator.amount.mul(creator.accPower).mul(pool.accMetisPerShare).div(1e18).sub(creator.rewardDebt);
-        if(pending > 0) {
-            safeMetisTransferToVault(msg.sender, pending);
-        }
+        _sendPending(pid, _creator);
         creator.accPower = 0;
         creator.DACMemberCount = 0;
         creator.userRole = Role.None;
@@ -283,16 +278,8 @@ contract Mining is Ownable, IMining {
         for (uint256 index = 0; index < memberLength; index++) {
             address memberAddr = creator.members.at(index);
             UserInfo storage member = userInfo[_pid][memberAddr];
-            updatePool(pool.token);
-            uint256 pending = member.amount.mul(member.accPower).mul(pool.accMetisPerShare).div(1e18).sub(member.rewardDebt);
-            if(pending > 0) {
-                safeMetisTransferToVault(memberAddr, pending);
-            }
-            member.accPower = 0;
-            member.userRole = Role.None;
-
-            creatorOf[memberAddr] = address(0);
-            creator.members.remove(memberAddr);
+            _sendPending(_pid, memberAddr);
+            _clearMemberInfo(_pid, memberAddr, _creator);
 
             require(DAC.memberLeave(_creator, memberAddr));
 
@@ -309,10 +296,7 @@ contract Mining is Ownable, IMining {
         require(creators.contains(msg.sender), "creatorWithdraw: not a creator");
         require(user.amount >= _amount, "creatorWithdraw: not good");
         updatePool(pool.token);
-        uint256 pending = user.amount.mul(user.accPower).mul(pool.accMetisPerShare).div(1e18).sub(user.rewardDebt);
-        if(pending > 0) {
-            safeMetisTransferToVault(msg.sender, pending);
-        }
+        _sendPending(pid, msg.sender);
         if(_amount > 0) {
             uint256 remainingAmount = user.amount.sub(_amount);
             if (user.members.length() > MIN_MEMBER_COUNT || DAO_OPEN) {
@@ -352,18 +336,14 @@ contract Mining is Ownable, IMining {
         UserInfo storage user = userInfo[pid][msg.sender];
         UserInfo storage creator = userInfo[pid][_creator];
         updatePool(pool.token);
-        uint256 pending = user.amount.mul(user.accPower).mul(pool.accMetisPerShare).div(1e18).sub(user.rewardDebt);
-        if(pending > 0) {
-            safeMetisTransferToVault(msg.sender, pending);
-        }
+        _sendPending(pid, msg.sender);
         if(_amount > 0) {
             uint256 remainingAmount = user.amount.sub(_amount);
             require(remainingAmount == 0 || remainingAmount >= MIN_DEPOSIT, "Member must left miniuem 100 Metis token or withdraw all");
             
             // means that the member leave a specific DAC
             if (remainingAmount == 0) {
-                user.accPower = 0;
-                user.userRole = Role.None;
+                _clearMemberInfo(pid, msg.sender, _creator);
 
                 // update creator information
                 creator.DACMemberCount = creator.DACMemberCount.sub(1);
@@ -375,9 +355,6 @@ contract Mining is Ownable, IMining {
                 }
                 creator.accPower = creator.accPower.sub(subPower);
 
-                creatorOf[msg.sender] = address(0);
-                creator.members.remove(msg.sender);
-
                 require(DAC.memberLeave(_creator, msg.sender));
             }
             user.amount = remainingAmount;
@@ -386,6 +363,15 @@ contract Mining is Ownable, IMining {
         }
         emit MemberWithdraw(_creator, msg.sender, _token, _amount);
         return true;
+    }
+
+    function _clearMemberInfo(uint256 _pid, address _member, address _creator) internal {
+        UserInfo storage member = userInfo[_pid][_member];
+        UserInfo storage creator = userInfo[_pid][_creator];
+        member.accPower = 0;
+        member.userRole = Role.None;
+        creatorOf[_member] = address(0);
+        creator.members.remove(_member);
     }
 
     function safeMetisTransferToVault(address _user, uint256 _amount) internal {

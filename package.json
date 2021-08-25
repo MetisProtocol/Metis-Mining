@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "hardhat test",
     "compile": "hardhat compile",
     "mock-deploy": "hardhat run scripts/mock-deploy.js --network metis",
     "deploy": "hardhat run scripts/deploy.js --network metis"
