@@ -5,7 +5,6 @@ import "./common/IERC20.sol";
 import "./common/SafeERC20.sol";
 import "./common/SafeMath.sol";
 import "./common/Ownable.sol";
-import "./common/EnumerableSet.sol";
 
 import "./interfaces/IMining.sol";
 import "./interfaces/IMetisToken.sol";
@@ -16,7 +15,6 @@ import "./interfaces/IDACRecorder.sol";
 contract Mining is Ownable, IMining {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
-    using EnumerableSet for EnumerableSet.AddressSet;
 
     // Info of each user.
     struct UserInfo {
@@ -30,7 +28,6 @@ contract Mining is Ownable, IMining {
         uint256 allocPoint; // How many allocation points assigned to this pool. Metis to distribute per 3min.
         uint256 lastRewardTimestamp; // Last block timestamp that Metis distribution occurs.
         uint256 accMetisPerShare; // Accumulated Metis per share, times 1e18. See below.
-        uint256 totalStakedAmount;
     }
 
     // The Metis TOKEN!
@@ -57,8 +54,6 @@ contract Mining is Ownable, IMining {
     uint256 public startTimestamp;
     uint256 public MIN_DEPOSIT = 100 * 1e18;
     uint256 public MAX_DEPOSIT = 2000 * 1e18;
-    uint256 public MIN_MEMBER_COUNT = 10;
-    bool public DAO_OPEN;
 
     /* ========== CONSTRUCTOR ========== */
 
@@ -82,15 +77,23 @@ contract Mining is Ownable, IMining {
         return poolInfo.length;
     }
 
+    function calcMetisReward(
+        uint256 timestamp, 
+        uint256 allocPoint 
+    ) public view returns (uint256 accTime, uint256 MetisReward) {
+        accTime = block.timestamp.sub(timestamp);
+        MetisReward = MetisPerSecond.mul(accTime).mul(allocPoint).div(totalAllocPoint);
+    }
+
     // View function to see pending Metis on frontend.
     function pendingMetis(uint256 _pid, address _user) external view returns (uint256) {
         PoolInfo memory pool = poolInfo[_pid];
         UserInfo memory user = userInfo[_pid][_user];
         uint256 accMetisPerShare = pool.accMetisPerShare;
-        uint256 totalStakedAmount = pool.totalStakedAmount;
-        if (block.timestamp > pool.lastRewardTimestamp && totalStakedAmount != 0) {
-            (,uint256 MetisReward) = _calcMetisReward(pool.lastRewardTimestamp, pool.allocPoint);
-            accMetisPerShare = accMetisPerShare.add(MetisReward.mul(1e18).div(totalStakedAmount));
+        uint256 totalWeight = DACRecorder.totalWeight();
+        if (block.timestamp > pool.lastRewardTimestamp && totalWeight != 0) {
+            (,uint256 MetisReward) = calcMetisReward(pool.lastRewardTimestamp, pool.allocPoint);
+            accMetisPerShare = accMetisPerShare.add(MetisReward.mul(1e18).div(totalWeight));
         }
         (, , uint256 accPower) = DACRecorder.checkUserInfo(_user);
         return user.amount.mul(accPower).mul(accMetisPerShare).div(1e18).sub(user.rewardDebt);
@@ -112,19 +115,19 @@ contract Mining is Ownable, IMining {
         if (block.timestamp <= pool.lastRewardTimestamp) {
             return;
         }
-        uint256 totalStakedAmount = pool.totalStakedAmount;
-        if (totalStakedAmount == 0) {
+        uint256 totalWeight = DACRecorder.totalWeight();
+        if (totalWeight == 0) {
             pool.lastRewardTimestamp = block.timestamp;
             return;
         }
-        (,uint256 MetisReward) = _calcMetisReward(pool.lastRewardTimestamp, pool.allocPoint);
+        (,uint256 MetisReward) = calcMetisReward(pool.lastRewardTimestamp, pool.allocPoint);
         if (teamAddr != address(0)) {
             Metis.mint(teamAddr, MetisReward.div(9));
         }
         Metis.mint(address(this), MetisReward);
         emit Mint(MetisReward);
         pool.accMetisPerShare = pool.accMetisPerShare.add(
-            MetisReward.mul(1e18).div(totalStakedAmount)
+            MetisReward.mul(1e18).div(totalWeight)
         );
         pool.lastRewardTimestamp = block.timestamp;
     }
@@ -155,7 +158,7 @@ contract Mining is Ownable, IMining {
                 DACRecorder.addMember(_creator, _user);
             }
         }
-        PoolInfo storage pool = poolInfo[_pid];
+        PoolInfo memory pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][_user];
         updatePool(_pid);
         if (user.amount > 0) {
@@ -165,8 +168,7 @@ contract Mining is Ownable, IMining {
             uint256 remainingAmount = user.amount.add(_amount);
             require(remainingAmount >= MIN_DEPOSIT && remainingAmount <= MAX_DEPOSIT, "Deposit amount is invalid");
             user.amount = remainingAmount;
-            DACRecorder.updateUser(_creator, _user, _DACMemberCount, _initialDACPower);
-            pool.totalStakedAmount = pool.totalStakedAmount.add(_amount);
+            DACRecorder.updateUser(_creator, _user, _DACMemberCount, _initialDACPower, user.amount);
             IERC20(pool.token).safeTransferFrom(_user, address(this), _amount);
         }
         (, , uint256 accPower) = DACRecorder.checkUserInfo(_user);
@@ -186,7 +188,7 @@ contract Mining is Ownable, IMining {
             require(!DACRecorder.isCreator(msg.sender), "This user is a creator");
             require(_creator == DACRecorder.creatorOf(msg.sender), "Wrong creator for this member user");
         }
-        PoolInfo storage pool = poolInfo[_pid];
+        PoolInfo memory pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         updatePool(_pid);
         _sendPending(_pid, msg.sender);
@@ -194,7 +196,7 @@ contract Mining is Ownable, IMining {
             uint256 remainingAmount = user.amount.sub(_amount);
             if (
                 isCreator && 
-                (DACRecorder.getMemberLength(msg.sender) > MIN_MEMBER_COUNT || DAO_OPEN)
+                (DACRecorder.getMemberLength(msg.sender) > DACRecorder.MIN_MEMBER_COUNT() || DACRecorder.DAO_OPEN())
             ) {
                 require(
                     remainingAmount >= MIN_DEPOSIT, 
@@ -202,7 +204,7 @@ contract Mining is Ownable, IMining {
                 );
                 // means that the creator dismiss his/her DAC without DAO opening
                 if (remainingAmount == 0) {
-                    DACRecorder.updateUser(address(0), msg.sender, 0, 0);
+                    DACRecorder.updateUser(address(0), msg.sender, 0, 0, 0);
                     DACRecorder.removeCreator(msg.sender);
                     _dismissDAC(_pid, msg.sender);
                     DAC.dismissDAC(msg.sender);
@@ -214,16 +216,15 @@ contract Mining is Ownable, IMining {
                 );
                 // means that the member leave a specific DAC
                 if (remainingAmount == 0) {
-                    _clearMemberInfo(msg.sender, _creator);
+                    _clearMemberInfo(msg.sender, _creator, user.amount);
 
                     // update creator information
-                    DACRecorder.subCreatorPower();
+                    DACRecorder.subCreatorPower(_creator, userInfo[_pid][_creator].amount);
 
                     DAC.memberLeave(_creator, msg.sender);
                 }
             }
             user.amount = remainingAmount;
-            pool.totalStakedAmount = pool.totalStakedAmount.sub(_amount);
             IERC20(pool.token).safeTransfer(address(msg.sender), _amount);
         }
         (, , uint256 accPower) = DACRecorder.checkUserInfo(msg.sender);
@@ -233,15 +234,14 @@ contract Mining is Ownable, IMining {
     }
 
     function dismissDAC(uint256 _pid, address _creator) onlyDAC external override returns (bool) {
-        require(DAO_OPEN, "DAO is not opened");
+        require(DACRecorder.DAO_OPEN(), "DAO is not opened");
         require(DACRecorder.isCreator(_creator), "dismissDAC: not a creator");
-        PoolInfo storage pool = poolInfo[_pid];
+        PoolInfo memory pool = poolInfo[_pid];
         UserInfo storage creator = userInfo[_pid][_creator];
         updatePool(_pid);
         _sendPending(_pid, _creator);
-        DACRecorder.updateUser(address(0), _creator, 0, 0);
+        DACRecorder.updateUser(address(0), _creator, 0, 0, 0);
         DACRecorder.removeCreator(_creator);
-        pool.totalStakedAmount = pool.totalStakedAmount.sub(creator.amount);
         IERC20(pool.token).safeTransfer(address(msg.sender), creator.amount);
         creator.amount = 0;
         _dismissDAC(_pid, _creator);
@@ -250,14 +250,6 @@ contract Mining is Ownable, IMining {
     }
 
     /* ========== INTERNAL FUNCTIONS ========== */
-
-    function _calcMetisReward(
-        uint256 timestamp, 
-        uint256 allocPoint 
-    ) public view returns (uint256 accTime, uint256 MetisReward) {
-        accTime = block.timestamp.sub(timestamp);
-        MetisReward = MetisPerSecond.mul(accTime).mul(allocPoint).div(totalAllocPoint);
-    }
 
     function _sendPending(uint256 _pid, address _user) internal {
         PoolInfo memory pool = poolInfo[_pid];
@@ -269,37 +261,33 @@ contract Mining is Ownable, IMining {
         }
     }
 
-    function _clearMemberInfo(address _member, address _creator) internal {
-        DACRecorder.updateUser(_creator, _member, 0, 0);
+    function _clearMemberInfo(address _member, address _creator, uint256 _amount) internal {
+        DACRecorder.updateUser(_creator, _member, 0, 0, _amount);
         DACRecorder.setCreatorOf(address(0), _member);
         DACRecorder.delMember(_creator, _member);
     }
 
     function _dismissDAC(uint256 _pid, address _creator) internal {
-        PoolInfo storage pool = poolInfo[_pid];
+        PoolInfo memory pool = poolInfo[_pid];
         uint256 memberLength = DACRecorder.getMemberLength(_creator);
         for (uint256 index = 0; index < memberLength; index++) {
             address memberAddr = DACRecorder.getMember(_creator, index);
             UserInfo storage member = userInfo[_pid][memberAddr];
             updatePool(_pid);
             _sendPending(_pid, memberAddr);
-            _clearMemberInfo(memberAddr, _creator);
+            _clearMemberInfo(memberAddr, _creator, member.amount);
 
             require(DAC.memberLeave(_creator, memberAddr));
-
-            pool.totalStakedAmount = pool.totalStakedAmount.sub(member.amount);
             IERC20(pool.token).safeTransfer(address(msg.sender), member.amount);
             member.amount = 0;
         }
     }
 
     function safeMetisTransferToVault(address _user, uint256 _amount) internal {
-        uint metisPid = tokenToPid[address(Metis)];
-        PoolInfo memory metisPool = poolInfo[metisPid];
-        uint256 MetisRewardsBal = Metis.balanceOf(address(this)).sub(metisPool.totalStakedAmount);
-        if (_amount > MetisRewardsBal) {
-            Metis.approve(address(vault), MetisRewardsBal);
-            vault.enter(MetisRewardsBal, _user);
+        uint256 MetisBal = Metis.balanceOf(address(this));
+        if (_amount > MetisBal) {
+            Metis.approve(address(vault), MetisBal);
+            vault.enter(MetisBal, _user);
         } else {
             Metis.approve(address(vault), _amount);
             vault.enter(_amount, _user);
@@ -320,8 +308,7 @@ contract Mining is Ownable, IMining {
                 token: _token,
                 allocPoint: _allocPoint,
                 lastRewardTimestamp: lastRewardTimestamp,
-                accMetisPerShare: 0,
-                totalStakedAmount: 0
+                accMetisPerShare: 0
             })
         );
         tokenToPid[_token] = poolInfo.length - 1;
@@ -370,14 +357,6 @@ contract Mining is Ownable, IMining {
             PoolInfo storage pool = poolInfo[pid];
             pool.lastRewardTimestamp = _startTimestamp;
         }
-    }
-
-    function setMinMemberCount(uint256 _minMemberCount) external onlyOwner {
-        MIN_MEMBER_COUNT = _minMemberCount;
-    }
-
-    function setDAOOpen(bool _daoOpen) external onlyOwner {
-        DAO_OPEN = _daoOpen;
     }
 
     // Update team address by the previous team address.

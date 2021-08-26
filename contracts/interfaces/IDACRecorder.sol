@@ -18,9 +18,14 @@ interface IDACRecorder {
         address _creator, 
         address _user, 
         uint256 _DACMemberCount, 
-        uint256 _initialDACPower
+        uint256 _initialDACPower,
+        uint256 _stakedAmount
     ) external returns (bool);
     function setCreatorOf(address _creator, address _member) external returns (bool);
-    function subCreatorPower() external returns (bool);
+    function subCreatorPower(address _creator, uint256 _amount) external returns (bool);
     function creatorOf(address _member) external returns (address);
+    function totalWeight() external view returns (uint256);
+    function MIN_MEMBER_COUNT() external view returns (uint256);
+    function DAO_OPEN() external view returns (bool);
+    function stakedMetis() external view returns (uint256);
 }

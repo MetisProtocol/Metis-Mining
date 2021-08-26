@@ -25,12 +25,16 @@ contract DACRecorder is Ownable {
     mapping(address => UserInfo) private userInfo;
     // Return creator of the specific member address
     mapping(address => address) public creatorOf;
+    mapping(address => uint256) public userWeight;
 
+    uint256 public totalWeight;
     uint256 public MAX_ACC_POWER = 500;
     uint256 public POWER_STEP_SIZE = 5; 
     uint256 public INITIAL_POWER_STEP_SIZE = 10;
     uint256 public MEMBER_POWER = 80;
     uint256 public MIN_MEMBER_COUNT = 10;
+    uint256 public stakedMetis;
+    bool public DAO_OPEN;
 
     /* ========== CONSTRUCTOR ========== */
 
@@ -110,37 +114,54 @@ contract DACRecorder is Ownable {
         address _creator, 
         address _user, 
         uint256 _DACMemberCount, 
-        uint256 _initialDACPower
+        uint256 _initialDACPower,
+        uint256 _amount
     ) external onlyMining returns (bool) {
         if (_creator == address(0)) {
             require(creatorOf[_user] == address(0), "This user is an existing member");
             if (_initialDACPower == 0) {
+                totalWeight = totalWeight.sub(userWeight[_user]);
+                stakedMetis = stakedMetis.sub(_amount);
                 userInfo[_user].userRole = Role.None;
                 userInfo[_user].accPower = 0;
                 userInfo[_user].DACMemberCount = 0;
+                userWeight[_user] = 0;
             } else {
                 userInfo[_user].userRole = Role.Creator;
                 userInfo[_user].accPower = _calcAccPowerForCreator(_initialDACPower, _DACMemberCount);
                 userInfo[_user].DACMemberCount = _DACMemberCount;
+                totalWeight = totalWeight.sub(userWeight[_user]);
+                userWeight[_user] = userInfo[_user].accPower.mul(_amount);
+                stakedMetis = stakedMetis.add(_amount);
+                totalWeight = totalWeight.add(userWeight[_user]);
             }
         } else {
             require(!isCreator(_user), "This user is an existing creator");
             if (_DACMemberCount == 0) {
+                totalWeight = totalWeight.sub(userWeight[_user]);
+                stakedMetis = stakedMetis.sub(_amount);
                 userInfo[_user].userRole = Role.None;
                 userInfo[_user].accPower = 0;
+                userWeight[_user] = 0;
             } else {
                 userInfo[_user].userRole = Role.Member;
                 userInfo[_user].accPower = MEMBER_POWER;
+                userWeight[_user] = userInfo[_user].accPower.mul(_amount);
+                stakedMetis = stakedMetis.add(_amount);
+                totalWeight = totalWeight.add(userWeight[_user]);
             }
         }
         return true;
     }
 
-    function subCreatorPower(address _creator) external onlyMining returns (bool) {
+    function subCreatorPower(address _creator, uint256 _amount) external onlyMining returns (bool) {
         userInfo[_creator].DACMemberCount = userInfo[_creator].DACMemberCount.sub(1);
         uint256 subPower = 0;
         userInfo[_creator].DACMemberCount == 1 ? subPower = INITIAL_POWER_STEP_SIZE : subPower = POWER_STEP_SIZE;
         userInfo[_creator].accPower = userInfo[_creator].accPower.sub(subPower);
+        totalWeight = totalWeight.sub(userWeight[_creator]);
+        userWeight[_creator] = userInfo[_creator].accPower.mul(_amount);
+        totalWeight = totalWeight.add(userWeight[_creator]);
     }
 
     function setMaxAccPower(uint256 _maxAccPower) external onlyOwner {
@@ -161,6 +182,10 @@ contract DACRecorder is Ownable {
 
     function setMinMemberCount(uint256 _minMemberCount) external onlyOwner {
         MIN_MEMBER_COUNT = _minMemberCount;
+    }
+
+    function setDAOOpen(bool _daoOpen) external onlyOwner {
+        DAO_OPEN = _daoOpen;
     }
 
     function setMining(IMining _mining) external onlyOwner {
