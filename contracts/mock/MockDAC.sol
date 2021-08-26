@@ -68,4 +68,8 @@ contract MockDAC is IDAC, Ownable {
     function setDAOOpen(bool _daoOpen) external onlyOwner {
         DAO_OPEN = _daoOpen;
     }
+
+    function setMiningContract(IMining _miningContract) external onlyOwner {
+        miningContract = _miningContract;
+    }
 }

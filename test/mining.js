@@ -1,80 +1,159 @@
 const { expect } = require("chai");
+const TimeHelper = require('./utils/time');
+
+const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000"
 
 describe("Mining Contract", function () {
 
-    let signer;
-    let MockMetisTokenFactory;
-    let MockMetis;
-    let MockDACFactory;
-    let MockDAC;
-    let VaultFactory;
-    let Vault;
-    let MiningFactory;
-    let Mining;
-    let DACRecorderFactory;
-    let DACRecorder;
+    before(async function () {
+        this.signers = await ethers.getSigners();
+        this.minter = this.signers[0]
+        this.alice = this.signers[1]
+        this.bob = this.signers[2]
+        this.carol = this.signers[3]
+
+        this.MockMetisTokenFactory = await hre.ethers.getContractFactory('MockMetisToken');
+        this.MockDACFactory = await hre.ethers.getContractFactory('MockDAC');
+        this.VaultFactory = await hre.ethers.getContractFactory('Vault');
+        this.MiningFactory = await hre.ethers.getContractFactory('Mining');
+        this.DACRecorderFactory = await hre.ethers.getContractFactory('DACRecorder');
+    });
 
     beforeEach(async function () {
-        const accounts = await ethers.getSigners();
-        signer = accounts[0].address;
+        this.metis = await this.MockMetisTokenFactory.deploy([this.minter.address], '10000000000000000000000000');
+        // mint 100000 MockMetis Token to minter
+        await this.metis.functions['mint'](this.minter.address, '100000000000000000000000');
 
-        MockMetisTokenFactory = await hre.ethers.getContractFactory('MockMetisToken');
-        MockDACFactory = await hre.ethers.getContractFactory('MockDAC');
-        VaultFactory = await hre.ethers.getContractFactory('Vault');
-        MiningFactory = await hre.ethers.getContractFactory('Mining');
-        DACRecorderFactory = await hre.ethers.getContractFactory('DACRecorder');
+        this.vault = await this.VaultFactory.deploy(this.metis.address);
+        await this.vault.deployed();
 
-        MockMetis = await MockMetisTokenFactory.deploy([signer], '10000000000000000000000000');
-        await MockMetis.deployed();
-
-        Vault = await VaultFactory.deploy(MockMetis.address);
-        await Vault.deployed();
-
-        DACRecorder = await DACRecorderFactory.deploy();
-        await DACRecorder.deployed();
-
-        Mining = await MiningFactory.deploy(
-            MockMetis.address,
-            Vault.address,
-            DACRecorder.address,
-            '18500000000000000',
-            Math.round(Date.now() / 1000) + 100,
+        this.DACRecorder = await this.DACRecorderFactory.deploy();
+        await this.DACRecorder.deployed();
+        
+        this.mockDAC = await this.MockDACFactory.deploy(
+            ADDRESS_ZERO,
+            this.metis.address,
         );
-        await Mining.deployed();
+        await this.mockDAC.deployed();
+    })
 
-        MockDAC = await MockDACFactory.deploy(
-            Mining.address,
-            MockMetis.address,
-        );
-        await MockDAC.deployed();
-    });
+    context("With MockMetis token added to the field", function () {
+        beforeEach(async function () {
+            await this.metis.connect(this.minter).transfer(this.alice.address, "3000000000000000000000");
 
-    it("Should mint 10000 MockMetis Token to signer", async function () {
-        await MockMetis.functions['mint'](signer, '10000000000000000000000');
+            await this.metis.connect(this.minter).transfer(this.bob.address, "3000000000000000000000");
 
-        const ownerBalance = await MockMetis.balanceOf(signer);
-        expect(await MockMetis.totalSupply()).to.equal(ownerBalance);
-    });
+            await this.metis.connect(this.minter).transfer(this.carol.address, "3000000000000000000000");
 
-    it('Add Mining contract to be the second minter of MockMetisToken', async function() {
-        await MockMetis.functions['addMinter'](Mining.address);
-        expect(await MockMetis.minters_(1)).to.equal(Mining.address);
-    });
+            // 18500000000000000 per second farming rate starting at 100 seconds after the current time
+            this.mining = await this.MiningFactory.deploy(
+                this.metis.address,
+                this.vault.address,
+                this.DACRecorder.address,
+                "18500000000000000",
+                (await TimeHelper.latestBlockTimestamp()).toNumber() + 100,
+            );
+            await this.mining.deployed();
 
-    it('Set DAC contract to Mining contract', async function () {
-        await Mining.functions['setDAC'](MockDAC.address);
-        expect(await Mining.DAC()).to.equal(MockDAC.address);
-    });
+            // config for related contracts
+            await this.DACRecorder.setMining(this.mining.address);
+            await this.mockDAC.setMiningContract(this.mining.address);
+            await this.mining.setDAC(this.mockDAC.address);
+            await this.vault.setMiningContract(this.mining.address);
 
-    it('Add Metis Pool to Mining contract', async function () {
-        await Mining.functions['add'](100, MockMetis.address, false);
-        const poolInfo = await Mining.poolInfo(0);
-        expect(poolInfo.token).to.equal(MockMetis.address);
-        expect(poolInfo.allocPoint).to.equal(100);
-    });
+            await this.metis.functions['addMinter'](this.mining.address);
 
-    it('Approve Mining contract to use signer\'s MockMetisToken', async function () {
-        await MockMetis.functions['approve'](Mining.address, hre.ethers.constants.MaxUint256);
-        expect(await MockMetis.allowance(signer, Mining.address)).to.equal(hre.ethers.constants.MaxUint256);
+            await this.mining.add(100, this.metis.address, false);
+
+            await this.metis.connect(this.alice).approve(this.mining.address, hre.ethers.constants.MaxUint256);
+            await this.metis.connect(this.bob).approve(this.mining.address, hre.ethers.constants.MaxUint256);
+            await this.metis.connect(this.carol).approve(this.mining.address, hre.ethers.constants.MaxUint256);
+        });
+
+        it("should deposit Metis between 100 and 2000 for creator and member", async function () {
+            await expect(this.mockDAC.connect(this.alice).creatorDeposit(
+                '1',
+                '1',
+                '80',
+            )).to.be.revertedWith('Deposit amount is invalid');
+
+            await expect(this.mockDAC.connect(this.alice).creatorDeposit(
+                '2001000000000000000000',
+                '1',
+                '80'
+            )).to.be.revertedWith('Deposit amount is invalid');
+
+            await this.mockDAC.connect(this.alice).creatorDeposit(
+                '2000000000000000000000',
+                '1',
+                '80'
+            );
+            expect(await this.metis.balanceOf(this.alice.address)).to.equal("1000000000000000000000");
+
+            await expect(this.mockDAC.connect(this.bob).memberDeposit(
+                this.alice.address,
+                '1',
+                '2',
+                '80'
+            )).to.be.revertedWith('Deposit amount is invalid');
+
+            await expect(this.mockDAC.connect(this.bob).memberDeposit(
+                this.alice.address,
+                '2001000000000000000000',
+                '2',
+                '80'
+            )).to.be.revertedWith('Deposit amount is invalid');
+
+            await this.mockDAC.connect(this.bob).creatorDeposit(
+                '2000000000000000000000',
+                '2',
+                '80'
+            );
+            expect(await this.metis.balanceOf(this.bob.address)).to.equal("1000000000000000000000");
+        });
+
+        it("should give out Metis only after farming time", async function () {
+            await this.mockDAC.connect(this.alice).creatorDeposit(
+                '2000000000000000000000',
+                '1',
+                '80'
+            );
+            const startTime = (await this.mining.startTimestamp()).toNumber();
+            // console.log('start block.timestamp: ', startTime);
+            // const initialTime = (await TimeHelper.latestBlockTimestamp()).toNumber();
+            // console.log('initial block.timestamp: ', initialTime);
+
+            await TimeHelper.advanceTimeAndBlock(10);
+            // console.log('first move block.timestamp: ', (await TimeHelper.latestBlockTimestamp()).toNumber());
+            await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0');
+            expect(await this.vault.shares(this.alice.address)).to.equal("0");
+
+            await TimeHelper.advanceTimeAndBlock(20);
+            // console.log('second move block.timestamp: ', (await TimeHelper.latestBlockTimestamp()).toNumber());
+            await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0');
+            expect(await this.vault.shares(this.alice.address)).to.equal("0");
+
+            await TimeHelper.advanceTimeAndBlock(30);
+            // console.log('third move block.timestamp: ', (await TimeHelper.latestBlockTimestamp()).toNumber());
+            await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0');
+            expect(await this.vault.shares(this.alice.address)).to.equal("0");
+
+            await TimeHelper.advanceTimeAndBlock(40);
+            // const fouthTime = (await TimeHelper.latestBlockTimestamp()).toNumber();
+            // console.log('fouth move block.timestamp: ', fouthTime);
+            // console.log(((await this.mining.poolInfo(0)).lastRewardTimestamp).toNumber());
+            const accTime = ((await this.mining._calcMetisReward(startTime, '100')).accTime.toNumber());
+            // console.log('======accTime', accTime);
+            // console.log('======reward', ((await this.mining._calcMetisReward(startTime, '100')).MetisReward.toString()));
+            await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0');
+            // console.log(((await this.mining.poolInfo(0)).lastRewardTimestamp).toNumber());
+            // console.log(((await this.mining.poolInfo(0)).accMetisPerShare).toString());
+            const userReward = (accTime + 1) * 185 * 1e14;
+            // console.log(userReward.toString());
+            expect(await this.vault.shares(this.alice.address)).to.equal(userReward.toString());
+        });
+        // it("should distribute Metis properly for each staker", async function () {
+
+        // });
     });
 });

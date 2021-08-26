@@ -89,7 +89,7 @@ contract Mining is Ownable, IMining {
         uint256 accMetisPerShare = pool.accMetisPerShare;
         uint256 totalStakedAmount = pool.totalStakedAmount;
         if (block.timestamp > pool.lastRewardTimestamp && totalStakedAmount != 0) {
-            uint256 MetisReward = _calcMetisReward(pool.lastRewardTimestamp, pool.allocPoint);
+            (,uint256 MetisReward) = _calcMetisReward(pool.lastRewardTimestamp, pool.allocPoint);
             accMetisPerShare = accMetisPerShare.add(MetisReward.mul(1e18).div(totalStakedAmount));
         }
         (, , uint256 accPower) = DACRecorder.checkUserInfo(_user);
@@ -102,7 +102,6 @@ contract Mining is Ownable, IMining {
     function massUpdatePools() public {
         uint256 length = poolInfo.length;
         for (uint256 pid = 0; pid <= length; ++pid) {
-            PoolInfo storage pool = poolInfo[pid];
             updatePool(pid);
         }
     }
@@ -118,7 +117,7 @@ contract Mining is Ownable, IMining {
             pool.lastRewardTimestamp = block.timestamp;
             return;
         }
-        uint256 MetisReward = _calcMetisReward(pool.lastRewardTimestamp, pool.allocPoint);
+        (,uint256 MetisReward) = _calcMetisReward(pool.lastRewardTimestamp, pool.allocPoint);
         if (teamAddr != address(0)) {
             Metis.mint(teamAddr, MetisReward.div(9));
         }
@@ -138,7 +137,7 @@ contract Mining is Ownable, IMining {
         uint256 _DACMemberCount,
         uint256 _initialDACPower
     ) onlyDAC external override returns (bool) {
-        bool isCreator = _creator != address(0);
+        bool isCreator = _creator == address(0);
         if (isCreator) {
             require(DACRecorder.creatorOf(_user) == address(0), "this user is a member of an existing DAC");
             if (!DACRecorder.isCreator(_user)) {
@@ -181,7 +180,7 @@ contract Mining is Ownable, IMining {
         uint256 _pid, 
         uint256 _amount
     ) external override returns (bool) {
-        bool isCreator = _creator != address(0);
+        bool isCreator = _creator == address(0);
         if (!isCreator) {
             require(DACRecorder.isCreator(_creator), "The creator is not found");
             require(!DACRecorder.isCreator(msg.sender), "This user is a creator");
@@ -255,16 +254,13 @@ contract Mining is Ownable, IMining {
     function _calcMetisReward(
         uint256 timestamp, 
         uint256 allocPoint 
-    ) internal view returns (uint256 MetisReward) {
-        MetisReward = MetisPerSecond
-            .mul(block.timestamp
-            .sub(timestamp))
-            .mul(allocPoint)
-            .div(totalAllocPoint);
+    ) public view returns (uint256 accTime, uint256 MetisReward) {
+        accTime = block.timestamp.sub(timestamp);
+        MetisReward = MetisPerSecond.mul(accTime).mul(allocPoint).div(totalAllocPoint);
     }
 
     function _sendPending(uint256 _pid, address _user) internal {
-        PoolInfo memory pool = poolInfo[_pid - 1];
+        PoolInfo memory pool = poolInfo[_pid];
         UserInfo memory user = userInfo[_pid][_user];
         (, , uint256 accPower) = DACRecorder.checkUserInfo(_user);
         uint256 pending = user.amount.mul(accPower).mul(pool.accMetisPerShare).div(1e18).sub(user.rewardDebt);
@@ -280,7 +276,7 @@ contract Mining is Ownable, IMining {
     }
 
     function _dismissDAC(uint256 _pid, address _creator) internal {
-        PoolInfo storage pool = poolInfo[_pid - 1];
+        PoolInfo storage pool = poolInfo[_pid];
         uint256 memberLength = DACRecorder.getMemberLength(_creator);
         for (uint256 index = 0; index < memberLength; index++) {
             address memberAddr = DACRecorder.getMember(_creator, index);
@@ -370,8 +366,8 @@ contract Mining is Ownable, IMining {
         startTimestamp = _startTimestamp;
         // reinitialize lastRewardTimestamp of all existing pools (if any)
         uint256 length = poolInfo.length;
-        for (uint256 pid = 1; pid <= length; ++pid) {
-            PoolInfo storage pool = poolInfo[pid - 1];
+        for (uint256 pid = 0; pid <= length; ++pid) {
+            PoolInfo storage pool = poolInfo[pid];
             pool.lastRewardTimestamp = _startTimestamp;
         }
     }
@@ -401,6 +397,5 @@ contract Mining is Ownable, IMining {
 
     event Deposit(address indexed creator, address indexed user, uint256 pid, uint256 amount, uint256 DACMemberCount);
     event Withdraw(address indexed creator, address indexed user, uint256 pid, uint256 amount);
-    event EmergencyWithdraw(address indexed user, uint256 pid, uint256 amount);
     event Mint(uint256 amount);
 }

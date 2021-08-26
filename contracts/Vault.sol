@@ -99,7 +99,7 @@ contract Vault {
     }
 
     modifier onlyMining() {
-        require(msg.sender == miningContract, "!gov");
+        require(msg.sender == miningContract, "!mining");
         _;
     }
 
