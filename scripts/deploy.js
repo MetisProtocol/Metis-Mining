@@ -48,14 +48,14 @@ async function main() {
 
     console.log(addresses);
 
+    fs.writeFileSync(`${__dirname}/addresses.json`, JSON.stringify(addresses, null, 4));
+
     // set Mining contract for DACRecorder
     await DACRecorder.setMiningContract(Mining.address, { gasLimit: 24000000 });
     // set DACRecorder for Vault
     await Vault.setDACRecorder(DACRecorder.address, { gasLimit: 24000000 });
     // set DAC for Mining contract
     await Mining.functions['setDAC'](DACAddr, { gasLimit: 24000000 });
-
-    fs.writeFileSync(`${__dirname}/addresses.json`, JSON.stringify(addresses, null, 4));
 }
 
 // We recommend this pattern to be able to use async/await everywhere

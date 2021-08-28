@@ -52,33 +52,12 @@ async function main() {
 
     fs.writeFileSync(`${__dirname}/mock-addresses.json`, JSON.stringify(addresses, null, 4));
 
-     // test function
-
-    // // mint 10000 metis token to signer
-    // await MockMetis.functions['mint'](signer, '10000000000000000000000', { gasLimit: 24000000 });
-    // console.log('checking singer\'s balance of Metis...');
-    // const newBalanceOfMetis = await MockMetis.functions.balanceOf(signer);
-    // console.log('signer\'s new balance of Metis:', newBalanceOfMetis);
-
-    // // add Mining contract to minter
-    // await MockMetis.functions['addMinter'](Mining.address, { gasLimit: 24000000 });
-
-    // // set DAC for Mining contract
-    // await Mining.functions['setDAC'](MockDAC.address, { gasLimit: 24000000 });
-
-    // // add Metis Pool for Mining contract
-    // await Mining.functions['add'](100, MockMetis.address, false, { gasLimit: 24000000 });
-
-    // // approve Mining Contract to use signer's Metis token
-    // await MockMetis.functions['approve'](Mining.address, hre.ethers.constants.MaxUint256, { gasLimit: 24000000 });
-
-    // // call DAC creator deposit function
-    // await MockDAC.functions['creatorDeposit']('100000000000000000000', 1, 80);
-
-    // // check userInfo in Mining Contract
-    // console.log('checking singer\'s user info in Mining contract...');
-    // const userInfo = await Mining.functions.checkUserInfo(1, signer);
-    // console.log("signer user info in Mining contract: ", userInfo);
+    // set Mining contract for DACRecorder
+    await DACRecorder.setMiningContract(Mining.address, { gasLimit: 24000000 });
+    // set DACRecorder for Vault
+    await Vault.setDACRecorder(DACRecorder.address, { gasLimit: 24000000 });
+    // set DAC for Mining contract
+    await Mining.functions['setDAC'](MockDAC.address, { gasLimit: 24000000 });
 }
 
 // We recommend this pattern to be able to use async/await everywhere
