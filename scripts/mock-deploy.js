@@ -20,13 +20,12 @@ async function main() {
     await Vault.deployed();
     console.log('Vault deployed to: ', Vault.address);
 
-    DACRecorder = await DACRecorderFactory.deploy();
+    DACRecorder = await DACRecorderFactory.deploy(MockMetis.address, Vault.address);
     await DACRecorder.deployed();
     console.log('DACRecorder deployed to: ', DACRecorder.address);
 
     const Mining = await MiningFactory.deploy(
         MockMetis.address,
-        Vault.address,
         DACRecorder.address,
         '18500000000000000',
         Math.round(Date.now() / 1000) + 100,
