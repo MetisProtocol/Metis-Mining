@@ -5,6 +5,8 @@ import "./common/SafeMath.sol";
 import "./common/Ownable.sol";
 import "./common/EnumerableSet.sol";
 import "./interfaces/IMining.sol";
+import "./interfaces/IMetisToken.sol";
+import "./interfaces/IVault.sol";
 
 contract DACRecorder is Ownable {
     using SafeMath for uint256;
@@ -19,6 +21,11 @@ contract DACRecorder is Ownable {
         EnumerableSet.AddressSet members; // members of creator's DAC
     }
 
+    // The Metis TOKEN!
+    IMetisToken public Metis;
+    // Vault
+    IVault public vault;
+    // Mining Contract
     IMining public mining;
     // Addresses of creators
     EnumerableSet.AddressSet private creators;
@@ -38,7 +45,10 @@ contract DACRecorder is Ownable {
 
     /* ========== CONSTRUCTOR ========== */
 
-    constructor() public {}
+    constructor(IMetisToken _Metis, IVault _vault) public {
+        Metis = _Metis;
+        vault = _vault;
+    }
 
     /* ========== VIEW FUNCTIONS ========== */
 
@@ -78,6 +88,17 @@ contract DACRecorder is Ownable {
         }
         accPower = _initialDACPower.add(addedPower);
         accPower = accPower > MAX_ACC_POWER ? MAX_ACC_POWER : accPower;
+    }
+
+    function _safeMetisTransferToVault(address _user, uint256 _amount) internal {
+        uint256 MetisBal = Metis.balanceOf(address(this));
+        if (_amount > MetisBal) {
+            Metis.approve(address(vault), MetisBal);
+            vault.enter(MetisBal, _user);
+        } else {
+            Metis.approve(address(vault), _amount);
+            vault.enter(_amount, _user);
+        }
     }
 
     /* ========== RESTRICTED FUNCTIONS ========== */
@@ -164,6 +185,10 @@ contract DACRecorder is Ownable {
         totalWeight = totalWeight.add(userWeight[_creator]);
     }
 
+    function sendRewardToVault(address _user, uint256 _amount) external onlyMining returns (bool) {
+        _safeMetisTransferToVault(_user, _amount);
+    }
+
     function setMaxAccPower(uint256 _maxAccPower) external onlyOwner {
         MAX_ACC_POWER = _maxAccPower;
     }
@@ -188,8 +213,16 @@ contract DACRecorder is Ownable {
         DAO_OPEN = _daoOpen;
     }
 
-    function setMining(IMining _mining) external onlyOwner {
+    function setMiningContract(IMining _mining) external onlyOwner {
         mining = _mining;
+    }
+
+    function setMetisToken(IMetisToken _metis) external onlyOwner {
+        Metis = _metis;
+    }
+
+    function setVault(IVault _vault) external onlyOwner {
+        vault = _vault;
     }
 
     /* ========== MODIFIERS ========== */

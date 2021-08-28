@@ -9,7 +9,7 @@ contract Vault {
     using SafeERC20 for IERC20;
 
     address public governance;
-    address public miningContract;
+    address public DACRecorder;
     IERC20 public metisToken;
 
     uint public leaveDistributionMin = 1000; // 10% distributed to remaining vault
@@ -31,7 +31,7 @@ contract Vault {
     /* ========== MUTATIVE FUNCTIONS ========== */
 
     // Enter staking pool. Pay some Metis. Earn some shares.
-    function enter(uint256 _amount, address _user) external onlyMining {
+    function enter(uint256 _amount, address _user) external onlyRecorder {
         // Gets the amount of Metis locked in the contract
         uint256 totalMetis = metisToken.balanceOf(address(this));
         // If no share exists, mint it 1:1 to the amount put in
@@ -80,8 +80,8 @@ contract Vault {
         leaveDistributionMin = _leaveDistributionMin;
     }
     
-    function setMiningContract(address _miningContract) external onlyGov {
-        miningContract = _miningContract;
+    function setDACRecorder(address _DACRecorder) external onlyGov {
+        DACRecorder = _DACRecorder;
     }
 
     // Allow governance to rescue tokens
@@ -98,8 +98,8 @@ contract Vault {
         _;
     }
 
-    modifier onlyMining() {
-        require(msg.sender == miningContract, "!mining");
+    modifier onlyRecorder() {
+        require(msg.sender == DACRecorder, "!DACRecorder");
         _;
     }
 

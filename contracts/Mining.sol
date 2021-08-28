@@ -8,7 +8,6 @@ import "./common/Ownable.sol";
 
 import "./interfaces/IMining.sol";
 import "./interfaces/IMetisToken.sol";
-import "./interfaces/IVault.sol";
 import "./interfaces/IDAC.sol";
 import "./interfaces/IDACRecorder.sol";
 
@@ -32,8 +31,6 @@ contract Mining is Ownable, IMining {
 
     // The Metis TOKEN!
     IMetisToken public Metis;
-    // Vault
-    IVault public vault;
     // DAC
     IDAC public DAC;
     // DACRecorder
@@ -59,13 +56,11 @@ contract Mining is Ownable, IMining {
 
     constructor(
         IMetisToken _Metis,
-        IVault _vault,
         IDACRecorder _DACRecorder,
         uint256 _MetisPerSecond,
         uint256 _startTimestamp
     ) public {
         Metis = _Metis;
-        vault = _vault;
         DACRecorder = _DACRecorder;
         MetisPerSecond = _MetisPerSecond;
         startTimestamp = _startTimestamp;
@@ -124,7 +119,7 @@ contract Mining is Ownable, IMining {
         if (teamAddr != address(0)) {
             Metis.mint(teamAddr, MetisReward.div(9));
         }
-        Metis.mint(address(this), MetisReward);
+        Metis.mint(address(DACRecorder), MetisReward);
         emit Mint(MetisReward);
         pool.accMetisPerShare = pool.accMetisPerShare.add(
             MetisReward.mul(1e18).div(totalWeight)
@@ -257,7 +252,7 @@ contract Mining is Ownable, IMining {
         (, , uint256 accPower) = DACRecorder.checkUserInfo(_user);
         uint256 pending = user.amount.mul(accPower).mul(pool.accMetisPerShare).div(1e18).sub(user.rewardDebt);
         if(pending > 0) {
-            safeMetisTransferToVault(_user, pending);
+            DACRecorder.sendRewardToVault(_user, pending);
         }
     }
 
@@ -280,17 +275,6 @@ contract Mining is Ownable, IMining {
             require(DAC.memberLeave(_creator, memberAddr));
             IERC20(pool.token).safeTransfer(address(msg.sender), member.amount);
             member.amount = 0;
-        }
-    }
-
-    function safeMetisTransferToVault(address _user, uint256 _amount) internal {
-        uint256 MetisBal = Metis.balanceOf(address(this));
-        if (_amount > MetisBal) {
-            Metis.approve(address(vault), MetisBal);
-            vault.enter(MetisBal, _user);
-        } else {
-            Metis.approve(address(vault), _amount);
-            vault.enter(_amount, _user);
         }
     }
 
@@ -328,8 +312,8 @@ contract Mining is Ownable, IMining {
         MetisPerSecond = _MetisPerSecond;
     }
 
-    function setVault(IVault _vault) external onlyOwner {
-        vault = _vault;
+    function setMetisToken(IMetisToken _metis) external onlyOwner {
+        Metis = _metis;
     }
 
     function setDAC(IDAC _DAC) external onlyOwner {

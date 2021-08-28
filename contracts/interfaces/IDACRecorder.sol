@@ -28,4 +28,5 @@ interface IDACRecorder {
     function MIN_MEMBER_COUNT() external view returns (uint256);
     function DAO_OPEN() external view returns (bool);
     function stakedMetis() external view returns (uint256);
+    function sendRewardToVault(address _user, uint256 _amount) external returns (bool);
 }
