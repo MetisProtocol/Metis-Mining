@@ -52,10 +52,13 @@ async function main() {
 
     // set Mining contract for DACRecorder
     await DACRecorder.setMiningContract(Mining.address, { gasLimit: 24000000 });
+    console.log('Set Mining contract for DACRecorder');
     // set DACRecorder for Vault
     await Vault.setDACRecorder(DACRecorder.address, { gasLimit: 24000000 });
+    console.log('Set DACRecorder contract for Vault');
     // set DAC for Mining contract
     await Mining.functions['setDAC'](DACAddr, { gasLimit: 24000000 });
+    console.log('Set DAC contract for Mining');
 }
 
 // We recommend this pattern to be able to use async/await everywhere

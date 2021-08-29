@@ -153,7 +153,7 @@ contract Mining is Ownable, IMining {
                 DACRecorder.addMember(_creator, _user);
             }
         }
-        PoolInfo memory pool = poolInfo[_pid];
+        PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][_user];
         updatePool(_pid);
         if (user.amount > 0) {
@@ -182,8 +182,11 @@ contract Mining is Ownable, IMining {
             require(DACRecorder.isCreator(_creator), "The creator is not found");
             require(!DACRecorder.isCreator(msg.sender), "This user is a creator");
             require(_creator == DACRecorder.creatorOf(msg.sender), "Wrong creator for this member user");
+        } else {
+            require(DACRecorder.isCreator(msg.sender), "The msg.sender is not a creator ");
+            require(DACRecorder.creatorOf(msg.sender) == address(0), "this msg.sender is a member of an existing DAC");
         }
-        PoolInfo memory pool = poolInfo[_pid];
+        PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         updatePool(_pid);
         _sendPending(_pid, msg.sender);
