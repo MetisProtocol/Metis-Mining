@@ -3,29 +3,35 @@ Mining Contracts for Metis
 
 ## Develop
 
-Install packages
+### Install packages
 
 ```
 yarn
 ```
 
-Compile
+### Compile
 
 ```
 yarn compile
 ```
 
-Create `.env` in root folder and add mnemonic into it, referring to `.env-example`
+### Test 
 
-Mock deploy to Metis Network
+```
+yarn test
+```
+
+## Mock deploy to Metis Network
+
+Create `.env` in root folder and add mnemonic into it, referring to `.env-example`
 
 ```
 yarn mock-deploy
 ```
 
-Add `MetisToken` and `DAC` contract address to `.env`
+## Deploy to Metis Network
 
-Deploy to Metis Network
+Add `MetisToken` and `DAC` contract address to `.env`
 
 ```
 yarn deploy
