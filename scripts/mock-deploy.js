@@ -16,11 +16,14 @@ async function main() {
     await MockMetis.deployed();
     console.log('MockMetis deployed to: ', MockMetis.address);
 
-    const Vault = await VaultFactory.deploy(MockMetis.address);
+    await MockMetis.mint(signer, '100000000000000000000000');
+    console.log('Mint 100000000000000000000000 to signer');
+
+    const Vault = await VaultFactory.deploy(MockMetis.address, );
     await Vault.deployed();
     console.log('Vault deployed to: ', Vault.address);
 
-    DACRecorder = await DACRecorderFactory.deploy(MockMetis.address, Vault.address);
+    DACRecorder = await DACRecorderFactory.deploy(MockMetis.address, Vault.address, );
     await DACRecorder.deployed();
     console.log('DACRecorder deployed to: ', DACRecorder.address);
 
@@ -28,7 +31,8 @@ async function main() {
         MockMetis.address,
         DACRecorder.address,
         '18500000000000000',
-        Math.round(Date.now() / 1000) + 100,
+        Math.round(Date.now() / 1000) + 100, 
+        
     );
     await Mining.deployed();
     console.log('Mining deployed to: ', Mining.address);
@@ -53,14 +57,20 @@ async function main() {
     fs.writeFileSync(`${__dirname}/mock-addresses.json`, JSON.stringify(addresses, null, 4));
 
     // set Mining contract for DACRecorder
-    await DACRecorder.setMiningContract(Mining.address, { gasLimit: 24000000 });
+    await DACRecorder.setMiningContract(Mining.address, );
     console.log('Set Mining contract for DACRecorder');
     // set DACRecorder for Vault
-    await Vault.setDACRecorder(DACRecorder.address, { gasLimit: 24000000 });
+    await Vault.setDACRecorder(DACRecorder.address, );
     console.log('Set DACRecorder contract for Vault');
     // set DAC for Mining contract
-    await Mining.functions['setDAC'](MockDAC.address, { gasLimit: 24000000 });
+    await Mining.functions['setDAC'](MockDAC.address, );
     console.log('Set DAC contract for Mining');
+    // add Mining to minter
+    await MockMetis.addMinter(Mining.address, );
+    console.log('Add minter for mining contract');
+    // add Metis pool
+    await Mining.add(100, MockMetis.address, false, );
+    console.log('Add MockMetis pool');
 }
 
 // We recommend this pattern to be able to use async/await everywhere
