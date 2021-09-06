@@ -77,6 +77,7 @@ contract Vault {
     }
 
     function setLeaveDistributionMin(uint _leaveDistributionMin) external onlyGov {
+        require(_leaveDistributionMin >= 0 && _leaveDistributionMin <= 5000, "leaveDistributionMin is out of limitation");
         leaveDistributionMin = _leaveDistributionMin;
     }
     
