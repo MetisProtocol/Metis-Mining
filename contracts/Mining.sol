@@ -49,7 +49,7 @@ contract Mining is Ownable, IMining {
     uint256 public totalAllocPoint = 0;
     // The block timestamp when Metis mining starts.
     uint256 public startTimestamp;
-    uint256 public MIN_DEPOSIT = 100 * 1e18;
+    uint256 public MIN_DEPOSIT = 10 * 1e18;
     uint256 public MAX_DEPOSIT = 2000 * 1e18;
 
     /* ========== CONSTRUCTOR ========== */
