@@ -17,7 +17,7 @@ async function main() {
     await MockMetis.deployed();
     console.log('MockMetis deployed to: ', MockMetis.address);
 
-    const Distributor = await DistributorFactory.deploy(MetisTokenAddr);
+    const Distributor = await DistributorFactory.deploy(MockMetis.address);
     await Distributor.deployed();
     console.log('Distributor deployed to: ', Distributor.address);
 
@@ -74,9 +74,6 @@ async function main() {
     // set DAC for Mining contract
     await Mining.functions['setDAC'](MockDAC.address);
     console.log('Set DAC contract for Mining');
-    // add Mining to minter
-    await MockMetis.addMinter(Mining.address);
-    console.log('Add minter for mining contract');
     // add Metis pool
     await Mining.add(100, MockMetis.address, false, );
     console.log('Add MockMetis pool');

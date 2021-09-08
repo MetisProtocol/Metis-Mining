@@ -75,9 +75,6 @@ describe("Mining Contract", function () {
             await this.mockDAC.setMiningContract(this.mining.address);
             await this.vault.setDACRecorder(this.DACRecorder.address);
             await this.mining.setDAC(this.mockDAC.address);
-
-            await this.metis.functions['addMinter'](this.mining.address);
-
             await this.mining.add(100, this.metis.address, false);
 
             // testers approve mining to use their Metis
