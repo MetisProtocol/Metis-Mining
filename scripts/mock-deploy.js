@@ -8,6 +8,7 @@ async function main() {
 
     const MockMetisTokenFactory = await hre.ethers.getContractFactory('MockMetisToken');
     const MockDACFactory = await hre.ethers.getContractFactory('MockDAC');
+    const DistributorFactory = await hre.ethers.getContractFactory('Distributor');
     const VaultFactory = await hre.ethers.getContractFactory('Vault');
     const MiningFactory = await hre.ethers.getContractFactory('Mining');
     const DACRecorderFactory = await hre.ethers.getContractFactory('DACRecorder');
@@ -16,8 +17,13 @@ async function main() {
     await MockMetis.deployed();
     console.log('MockMetis deployed to: ', MockMetis.address);
 
-    await MockMetis.mint(signer, '100000000000000000000000');
-    console.log('Mint 100000000000000000000000 to signer');
+    const Distributor = await DistributorFactory.deploy(MetisTokenAddr);
+    await Distributor.deployed();
+    console.log('Distributor deployed to: ', Distributor.address);
+
+    await MockMetis.mint(Distributor.address, '1000000000000000000000000');
+    console.log('Mint 1000000 Mock Metis token to distributor');
+    
 
     const Vault = await VaultFactory.deploy(MockMetis.address, );
     await Vault.deployed();
@@ -30,9 +36,9 @@ async function main() {
     const Mining = await MiningFactory.deploy(
         MockMetis.address,
         DACRecorder.address,
+        Distributor.address,
         '18500000000000000',
         Math.round(Date.now() / 1000) + 100, 
-        
     );
     await Mining.deployed();
     console.log('Mining deployed to: ', Mining.address);
@@ -50,23 +56,26 @@ async function main() {
         DACRecorder: DACRecorder.address,
         Mining: Mining.address,
         Vault: Vault.address,
+        Distributor: Distributor.address,
     };
 
     console.log(addresses);
 
     fs.writeFileSync(`${__dirname}/mock-addresses.json`, JSON.stringify(addresses, null, 4));
 
+    // set Mining contract for Distributor
+    await Distributor.setMiningContract(Mining.address);
     // set Mining contract for DACRecorder
-    await DACRecorder.setMiningContract(Mining.address, );
+    await DACRecorder.setMiningContract(Mining.address);
     console.log('Set Mining contract for DACRecorder');
     // set DACRecorder for Vault
-    await Vault.setDACRecorder(DACRecorder.address, );
+    await Vault.setDACRecorder(DACRecorder.address);
     console.log('Set DACRecorder contract for Vault');
     // set DAC for Mining contract
-    await Mining.functions['setDAC'](MockDAC.address, );
+    await Mining.functions['setDAC'](MockDAC.address);
     console.log('Set DAC contract for Mining');
     // add Mining to minter
-    await MockMetis.addMinter(Mining.address, );
+    await MockMetis.addMinter(Mining.address);
     console.log('Add minter for mining contract');
     // add Metis pool
     await Mining.add(100, MockMetis.address, false, );

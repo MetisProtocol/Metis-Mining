@@ -10,6 +10,7 @@ import "./interfaces/IMining.sol";
 import "./interfaces/IMetisToken.sol";
 import "./interfaces/IDAC.sol";
 import "./interfaces/IDACRecorder.sol";
+import "./interfaces/IDistributor.sol";
 
 contract Mining is Ownable, IMining {
     using SafeMath for uint256;
@@ -35,6 +36,8 @@ contract Mining is Ownable, IMining {
     IDAC public DAC;
     // DACRecorder
     IDACRecorder public DACRecorder;
+    // Metis distributor
+    IDistributor public distributor;
     // Dev address.
     address public teamAddr;
     // Info of each pool.
@@ -57,11 +60,13 @@ contract Mining is Ownable, IMining {
     constructor(
         IMetisToken _Metis,
         IDACRecorder _DACRecorder,
+        IDistributor _distributor,
         uint256 _MetisPerSecond,
         uint256 _startTimestamp
     ) public {
         Metis = _Metis;
         DACRecorder = _DACRecorder;
+        distributor = _distributor;
         MetisPerSecond = _MetisPerSecond;
         startTimestamp = _startTimestamp;
     }
@@ -117,9 +122,9 @@ contract Mining is Ownable, IMining {
         }
         (,uint256 MetisReward) = calcMetisReward(pool.lastRewardTimestamp, pool.allocPoint);
         if (teamAddr != address(0)) {
-            Metis.mint(teamAddr, MetisReward.div(9));
+            distributor.distribute(teamAddr, MetisReward.div(9));
         }
-        Metis.mint(address(DACRecorder), MetisReward);
+        distributor.distribute(address(DACRecorder), MetisReward);
         emit Mint(MetisReward);
         pool.accMetisPerShare = pool.accMetisPerShare.add(
             MetisReward.mul(1e18).div(totalWeight)

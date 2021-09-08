@@ -20,9 +20,14 @@ async function main() {
         DACAddr = process.env.DAC;
     }
 
+    const DistributorFactory = await hre.ethers.getContractFactory('Distributor');
     const VaultFactory = await hre.ethers.getContractFactory('Vault');
     const DACRecorderFactory = await hre.ethers.getContractFactory('DACRecorder');
     const MiningFactory = await hre.ethers.getContractFactory('Mining');
+
+    const Distributor = await DistributorFactory.deploy(MetisTokenAddr);
+    await Distributor.deployed();
+    console.log('Distributor deployed to: ', Distributor.address);
 
     const Vault = await VaultFactory.deploy(MockMetis.address);
     await Vault.deployed();
@@ -34,6 +39,8 @@ async function main() {
 
     const Mining = await MiningFactory.deploy(
         MetisTokenAddr,
+        DACRecorder.address,
+        Distributor.address,
         '18500000000000000',
         Math.round(Date.now() / 1000) + 100,
     );
@@ -44,12 +51,15 @@ async function main() {
         DACRecorder: DACRecorder.address,
         Mining: Mining.address,
         Vault: Vault.address,
+        Distributor: Distributor.address,
     };
 
     console.log(addresses);
 
     fs.writeFileSync(`${__dirname}/addresses.json`, JSON.stringify(addresses, null, 4));
 
+    // set Mining contract for Distributor
+    await Distributor.setMiningContract(Mining.address, { gasLimit: 24000000 });
     // set Mining contract for DACRecorder
     await DACRecorder.setMiningContract(Mining.address, { gasLimit: 24000000 });
     console.log('Set Mining contract for DACRecorder');

@@ -18,6 +18,7 @@ describe("Mining Contract", function () {
         this.VaultFactory = await hre.ethers.getContractFactory('Vault');
         this.MiningFactory = await hre.ethers.getContractFactory('Mining');
         this.DACRecorderFactory = await hre.ethers.getContractFactory('DACRecorder');
+        this.DistributorFactory = await hre.ethers.getContractFactory('Distributor');
     });
 
     beforeEach(async function () {
@@ -39,6 +40,12 @@ describe("Mining Contract", function () {
             this.metis.address,
         );
         await this.mockDAC.deployed();
+
+        this.distributor = await this.DistributorFactory.deploy(this.metis.address);
+        await this.distributor.deployed();
+
+        // mint 1000000 MockMetis Token to distributor
+        await this.metis.functions['mint'](this.distributor.address, '1000000000000000000000000');
     })
 
     context("With MockMetis token added to the field", function () {
@@ -56,12 +63,14 @@ describe("Mining Contract", function () {
             this.mining = await this.MiningFactory.deploy(
                 this.metis.address,
                 this.DACRecorder.address,
+                this.distributor.address,
                 "1000000000000000",
                 (await TimeHelper.latestBlockTimestamp()).toNumber() + 100,
             );
             await this.mining.deployed();
 
             // config for related contracts
+            await this.distributor.setMiningContract(this.mining.address);
             await this.DACRecorder.setMiningContract(this.mining.address);
             await this.mockDAC.setMiningContract(this.mining.address);
             await this.vault.setDACRecorder(this.DACRecorder.address);
