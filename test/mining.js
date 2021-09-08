@@ -78,6 +78,36 @@ describe("Mining Contract", function () {
             await this.metis.connect(this.daniel).approve(this.mining.address, hre.ethers.constants.MaxUint256);
         });
 
+        it("should deposit and withdraw properly", async function () {
+            await this.mockDAC.connect(this.alice).creatorDeposit(
+                '2000000000000000000000',
+                '1',
+                '80'
+            );
+            expect(await this.metis.balanceOf(this.alice.address)).to.equal("1000000000000000000000");
+            await this.mining.connect(this.alice).withdraw(
+                ADDRESS_ZERO,
+                '0',
+                '2000000000000000000000'
+            );
+            expect(await this.metis.balanceOf(this.alice.address)).to.equal("3000000000000000000000");
+        });
+
+        it("can't withdraw all with DAO opening", async function () {
+            await this.DACRecorder.setDAOOpen(true);
+            await this.mockDAC.connect(this.alice).creatorDeposit(
+                '2000000000000000000000',
+                '1',
+                '80'
+            );
+            expect(await this.metis.balanceOf(this.alice.address)).to.equal("1000000000000000000000");
+            await expect(this.mining.connect(this.alice).withdraw(
+                ADDRESS_ZERO,
+                '0',
+                '2000000000000000000000'
+            )).to.be.revertedWith('creatorWithdraw: Creator can\'t dismiss this DAC');
+        });
+
         it("should deposit Metis between 100 and 2000 for creator and member", async function () {
             await expect(this.mockDAC.connect(this.alice).creatorDeposit(
                 '1',

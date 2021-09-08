@@ -192,20 +192,19 @@ contract Mining is Ownable, IMining {
         _sendPending(_pid, msg.sender);
         if(_amount > 0) {
             uint256 remainingAmount = user.amount.sub(_amount);
-            if (
-                isCreator && 
-                (DACRecorder.getMemberLength(msg.sender) > DACRecorder.MIN_MEMBER_COUNT() || DACRecorder.DAO_OPEN())
-            ) {
-                require(
-                    remainingAmount >= MIN_DEPOSIT, 
-                    "creatorWithdraw: Creator can't dismiss this DAC"
-                );
+            if (isCreator) {
+                if (DACRecorder.getMemberLength(msg.sender) > DACRecorder.MIN_MEMBER_COUNT() || DACRecorder.DAO_OPEN()) {
+                    require(
+                        remainingAmount >= MIN_DEPOSIT, 
+                        "creatorWithdraw: Creator can't dismiss this DAC"
+                    );
+                }
                 // means that the creator dismiss his/her DAC without DAO opening
                 if (remainingAmount == 0) {
-                    DACRecorder.updateUser(address(0), msg.sender, 0, 0, 0);
-                    DACRecorder.removeCreator(msg.sender);
                     _dismissDAC(_pid, msg.sender);
                     DAC.dismissDAC(msg.sender);
+                    DACRecorder.updateUser(address(0), msg.sender, 0, 0, 0);
+                    DACRecorder.removeCreator(msg.sender);
                 }
             } else {
                 require(
@@ -238,12 +237,12 @@ contract Mining is Ownable, IMining {
         UserInfo storage creator = userInfo[_pid][_creator];
         updatePool(_pid);
         _sendPending(_pid, _creator);
+        _dismissDAC(_pid, _creator);
+        DAC.dismissDAC(msg.sender);
         DACRecorder.updateUser(address(0), _creator, 0, 0, 0);
         DACRecorder.removeCreator(_creator);
         IERC20(pool.token).safeTransfer(address(msg.sender), creator.amount);
         creator.amount = 0;
-        _dismissDAC(_pid, _creator);
-        DAC.dismissDAC(msg.sender);
         return true;
     }
 
