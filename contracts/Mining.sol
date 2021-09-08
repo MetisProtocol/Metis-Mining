@@ -214,7 +214,7 @@ contract Mining is Ownable, IMining {
             } else {
                 require(
                     remainingAmount == 0 || remainingAmount >= MIN_DEPOSIT, 
-                    "Member must left miniuem 100 Metis token or withdraw all"
+                    "Member must left required amount of Metis token or withdraw all"
                 );
                 // means that the member leave a specific DAC
                 if (remainingAmount == 0) {
