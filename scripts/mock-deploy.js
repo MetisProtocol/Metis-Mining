@@ -23,6 +23,9 @@ async function main() {
 
     await MockMetis.mint(Distributor.address, '1000000000000000000000000');
     console.log('Mint 1000000 Mock Metis token to distributor');
+
+    await MockMetis.mint(signer, '1000000000000000000000000');
+    console.log('Mint 1000000 Mock Metis token to signer');
     
 
     const Vault = await VaultFactory.deploy(MockMetis.address, );
