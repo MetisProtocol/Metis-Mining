@@ -88,13 +88,15 @@ describe("Mining Contract", function () {
             await this.mockDAC.connect(this.alice).creatorDeposit(
                 '2000000000000000000000',
                 '1',
-                '80'
+                '80',
+                '1'
             );
             expect(await this.metis.balanceOf(this.alice.address)).to.equal("1000000000000000000000");
             await this.mining.connect(this.alice).withdraw(
                 ADDRESS_ZERO,
                 '0',
-                '2000000000000000000000'
+                '2000000000000000000000',
+                '1'
             );
             expect(await this.metis.balanceOf(this.alice.address)).to.equal("3000000000000000000000");
         });
@@ -104,14 +106,30 @@ describe("Mining Contract", function () {
             await this.mockDAC.connect(this.alice).creatorDeposit(
                 '2000000000000000000000',
                 '1',
-                '80'
+                '80',
+                '1'
             );
             expect(await this.metis.balanceOf(this.alice.address)).to.equal("1000000000000000000000");
             await expect(this.mining.connect(this.alice).withdraw(
                 ADDRESS_ZERO,
                 '0',
-                '2000000000000000000000'
+                '2000000000000000000000',
+                '1'
             )).to.be.revertedWith('creatorWithdraw: Creator can\'t dismiss this DAC');
+        });
+
+        it("dismiss DAC with DAO opening", async function () {
+            await this.DACRecorder.setDAOOpen(true);
+            await this.mockDAC.setDAOOpen(true);
+            await this.mockDAC.connect(this.alice).creatorDeposit(
+                '2000000000000000000000',
+                '1',
+                '80',
+                '1'
+            );
+            expect(await this.metis.balanceOf(this.alice.address)).to.equal("1000000000000000000000");
+            await this.mockDAC.connect(this.alice).DAODismiss('1');
+            expect(await this.metis.balanceOf(this.alice.address)).to.equal("3000000000000000000000");
         });
 
         it("should deposit Metis between 100 and 2000 for creator and member", async function () {
@@ -119,18 +137,21 @@ describe("Mining Contract", function () {
                 '1',
                 '1',
                 '80',
+                '1'
             )).to.be.revertedWith('Deposit amount is invalid');
 
             await expect(this.mockDAC.connect(this.alice).creatorDeposit(
                 '2001000000000000000000',
                 '1',
-                '80'
+                '80',
+                '1'
             )).to.be.revertedWith('Deposit amount is invalid');
 
             await this.mockDAC.connect(this.alice).creatorDeposit(
                 '2000000000000000000000',
                 '1',
-                '80'
+                '80',
+                '1'
             );
             expect(await this.metis.balanceOf(this.alice.address)).to.equal("1000000000000000000000");
 
@@ -138,20 +159,23 @@ describe("Mining Contract", function () {
                 this.alice.address,
                 '1',
                 '2',
-                '80'
+                '80',
+                '1'
             )).to.be.revertedWith('Deposit amount is invalid');
 
             await expect(this.mockDAC.connect(this.bob).memberDeposit(
                 this.alice.address,
                 '2001000000000000000000',
                 '2',
-                '80'
+                '80',
+                '1'
             )).to.be.revertedWith('Deposit amount is invalid');
 
             await this.mockDAC.connect(this.bob).creatorDeposit(
                 '2000000000000000000000',
                 '2',
-                '80'
+                '80',
+                '2'
             );
             expect(await this.metis.balanceOf(this.bob.address)).to.equal("1000000000000000000000");
         });
@@ -160,7 +184,8 @@ describe("Mining Contract", function () {
             await this.mockDAC.connect(this.alice).creatorDeposit(
                 '2000000000000000000000',
                 '1',
-                '80'
+                '80',
+                '1'
             );
             const startTime = (await this.mining.startTimestamp()).toNumber();
             // console.log('start block.timestamp: ', startTime);
@@ -169,17 +194,17 @@ describe("Mining Contract", function () {
 
             await TimeHelper.advanceTimeAndBlock(10);
             // console.log('first move block.timestamp: ', (await TimeHelper.latestBlockTimestamp()).toNumber());
-            await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0');
+            await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0', '1');
             expect(await this.vault.shares(this.alice.address)).to.equal("0");
 
             await TimeHelper.advanceTimeAndBlock(20);
             // console.log('second move block.timestamp: ', (await TimeHelper.latestBlockTimestamp()).toNumber());
-            await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0');
+            await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0', '1');
             expect(await this.vault.shares(this.alice.address)).to.equal("0");
 
             await TimeHelper.advanceTimeAndBlock(30);
             // console.log('third move block.timestamp: ', (await TimeHelper.latestBlockTimestamp()).toNumber());
-            await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0');
+            await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0', '1');
             expect(await this.vault.shares(this.alice.address)).to.equal("0");
 
             await TimeHelper.advanceTimeAndBlock(40);
@@ -191,7 +216,7 @@ describe("Mining Contract", function () {
             // console.log('======reward', ((await this.mining.calcMetisReward(startTime, '100')).MetisReward.toString()));
             // const pendingAlice = (await this.mining.pendingMetis('0', this.alice.address)).toString();
             // console.log('alice pending rewards: ', pendingAlice);
-            await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0');
+            await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0', '1');
             // console.log(((await this.mining.poolInfo(0)).lastRewardTimestamp).toNumber());
             // console.log(((await this.mining.poolInfo(0)).accMetisPerShare).toString());
             const userReward = (accTime + 1) * 1e15;
@@ -208,7 +233,8 @@ describe("Mining Contract", function () {
             await this.mockDAC.connect(this.alice).creatorDeposit(
                 '1000000000000000000000',
                 '1',
-                '100'
+                '100',
+                '1'
             );
             // const secondTime = (await TimeHelper.latestBlockTimestamp()).toNumber();
             // console.log('second block.timestamp: ', secondTime);
@@ -217,7 +243,8 @@ describe("Mining Contract", function () {
             await this.mockDAC.connect(this.bob).creatorDeposit(
                 '1000000000000000000000',
                 '1',
-                '100'
+                '100',
+                '2'
             );
             // const aliceAmount = (await this.mining.userInfo('0', this.alice.address)).amount.toString();
             // console.log('alice amount: ', aliceAmount);
@@ -240,12 +267,12 @@ describe("Mining Contract", function () {
             // console.log('totalReward: ', totalReward);
             
             const aliceReward = (accTime + 1) * 1e15 * 0.5;
-            await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0');
+            await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0', '1');
             // console.log('alice rewards: ', aliceReward);
             expect(await this.vault.shares(this.alice.address)).to.equal(aliceReward.toString());
 
             const bobReward = (accTime + 2) * 1e15 * 0.5;
-            await this.mining.connect(this.bob).withdraw(ADDRESS_ZERO, '0', '0');
+            await this.mining.connect(this.bob).withdraw(ADDRESS_ZERO, '0', '0', '2');
             // console.log('bob rewards: ', bobReward);
             expect(await this.vault.shares(this.bob.address)).to.equal(bobReward.toString());
         });
@@ -255,13 +282,14 @@ describe("Mining Contract", function () {
             await this.mockDAC.connect(this.alice).creatorDeposit(
                 '1000000000000000000000',
                 '1',
-                '100'
+                '100',
+                '1'
             );
             await TimeHelper.advanceTimeAndBlock(100);
             let accTime = ((await this.mining.calcMetisReward(startTime, '100')).accTime.toNumber());
-            let pendingAlice = (await this.mining.pendingMetis('0', this.alice.address)).toString();
+            let pendingAlice = (await this.mining.pendingMetis('1', '0', this.alice.address)).toString();
             // console.log('alice pending rewards: ', pendingAlice);
-            let pendingBob = (await this.mining.pendingMetis('0', this.bob.address)).toString();
+            let pendingBob = (await this.mining.pendingMetis('1', '0', this.bob.address)).toString();
             // console.log('bob pending rewards: ', pendingBob);
             // const firstTime = (await TimeHelper.latestBlockTimestamp()).toNumber();
             // console.log('firstTime', firstTime);
@@ -272,7 +300,7 @@ describe("Mining Contract", function () {
             // console.log('first alice accPower', (await this.DACRecorder.checkUserInfo(this.alice.address)).accPower.toString());
             // console.log('first alice rewardDebt', (await this.mining.userInfo('0', this.alice.address)).rewardDebt.toString());
             // console.log('first pool accMetisPerShare', (await this.mining.poolInfo('0')).accMetisPerShare.toString());
-            await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0');
+            await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0', '1');
             accTime += 1;
             const secondTime = (await TimeHelper.latestBlockTimestamp()).toNumber();
             // console.log('secondTime', secondTime);
@@ -285,13 +313,13 @@ describe("Mining Contract", function () {
             // console.log('second pool accMetisPerShare', (await this.mining.poolInfo('0')).accMetisPerShare.toString());
             let aliceReward = accTime * 1e15;
             // console.log('alice rewards: ', aliceReward);
-            pendingAlice = (await this.mining.pendingMetis('0', this.alice.address)).toString();
+            pendingAlice = (await this.mining.pendingMetis('1', '0', this.alice.address)).toString();
             // console.log('alice pending rewards: ', pendingAlice);
             expect(await this.vault.shares(this.alice.address)).to.equal(aliceReward.toString());
             
 
 
-            pendingBob = (await this.mining.pendingMetis('0', this.bob.address)).toString();
+            pendingBob = (await this.mining.pendingMetis('1', '0', this.bob.address)).toString();
             // console.log('bob pending rewards: ', pendingBob);
 
             // Alice invite Bob to DAC and member Bob deposit 100 Metis with 80 power at this time
@@ -300,19 +328,20 @@ describe("Mining Contract", function () {
                 '100000000000000000000',
                 '2',
                 // this is the initialPower of Alice's DAC
-                '100'
+                '100',
+                '1'
             );
             accTime += 1;
 
             // Alice withdraw rewards
-            await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0');
+            await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0', '1');
             accTime += 1;
 
             aliceReward = (accTime - 1) * 1e15 + 1e15 * (100 * 1000 / (100 * 1000 + 100 * 80)).toFixed(10);
             expect(await this.vault.shares(this.alice.address)).to.equal(aliceReward.toString());
 
             // Bob witdraw 2 seconds rewards
-            await this.mining.connect(this.bob).withdraw(this.alice.address, '0', '0');
+            await this.mining.connect(this.bob).withdraw(this.alice.address, '0', '0', '1');
             accTime += 1;
             bobReward = '148148148144000';
             expect(await this.vault.shares(this.bob.address)).to.equal(bobReward);
@@ -323,11 +352,12 @@ describe("Mining Contract", function () {
             await this.mockDAC.connect(this.alice).creatorDeposit(
                 '1000000000000000000000',
                 '1',
-                '100'
+                '100',
+                '1'
             );
             await TimeHelper.advanceTimeAndBlock(100);
             let accTime = ((await this.mining.calcMetisReward(startTime, '100')).accTime.toNumber());
-            await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0');
+            await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0', '1');
             accTime += 1;
             let aliceReward = accTime * 1e15;
             expect(await this.vault.shares(this.alice.address)).to.equal(aliceReward.toString());

@@ -86,17 +86,19 @@ contract Mining is Ownable, IMining {
     }
 
     // View function to see pending Metis on frontend.
-    function pendingMetis(uint256 _pid, address _user) external view returns (uint256) {
+    function pendingMetis(uint256 _dacId, uint256 _pid, address _user) external view returns (uint256) {
         PoolInfo memory pool = poolInfo[_pid];
         UserInfo memory user = userInfo[_pid][_user];
-        uint256 accMetisPerShare = pool.accMetisPerShare;
+        (IDACRecorder.DACState dacState,, uint256 accMetisPerShare,,) = DACRecorder.checkDACInfo(_dacId);
+        bool isActiveDAC = dacState == IDACRecorder.DACState.Active;
+        uint256 share = isActiveDAC ? pool.accMetisPerShare : accMetisPerShare;
         uint256 totalWeight = DACRecorder.totalWeight();
-        if (block.timestamp > pool.lastRewardTimestamp && totalWeight != 0) {
+        if (isActiveDAC && block.timestamp > pool.lastRewardTimestamp && totalWeight != 0) {
             (,uint256 MetisReward) = calcMetisReward(pool.lastRewardTimestamp, pool.allocPoint);
-            accMetisPerShare = accMetisPerShare.add(MetisReward.mul(1e18).div(totalWeight));
+            share = share.add(MetisReward.mul(1e18).div(totalWeight));
         }
-        (, , uint256 accPower) = DACRecorder.checkUserInfo(_user);
-        return user.amount.mul(accPower).mul(accMetisPerShare).div(1e18).sub(user.rewardDebt);
+        (, uint256 accPower) = DACRecorder.checkUserInfo(_user);
+        return user.amount.mul(accPower).mul(share).div(1e18).sub(user.rewardDebt);
     }
 
     /* ========== MUTATIVE FUNCTIONS ========== */
@@ -138,40 +140,50 @@ contract Mining is Ownable, IMining {
         uint256 _pid, 
         uint256 _amount,
         uint256 _DACMemberCount,
-        uint256 _initialDACPower
+        uint256 _initialDACPower,
+        uint256 _dacId
     ) onlyDAC external override returns (bool) {
+        (IDACRecorder.DACState dacState,,,,) = DACRecorder.checkDACInfo(_dacId);
         bool isCreator = _creator == address(0);
+        address existedCreator = DACRecorder.creatorOf(_user);
         if (isCreator) {
             require(DACRecorder.creatorOf(_user) == address(0), "this user is a member of an existing DAC");
             if (!DACRecorder.isCreator(_user)) {
                 DACRecorder.addCreator(_user);
-            }
+            } 
+            // else {
+            //     require(dacCreator == _user, "this user is not matched to DAC creator");
+            // }
         } else {
-            require(DACRecorder.isCreator(_creator), "The creator is not found");
-            require(!DACRecorder.isCreator(_user), "This user is a creator");
-            if (DACRecorder.creatorOf(_user) != address(0)) {
+            // require(DACRecorder.isCreator(_creator), "The creator is not found");
+            // require(!DACRecorder.isCreator(_user), "This user is a creator");
+            if (existedCreator != address(0)) {
                 // old member
-                require(_creator == DACRecorder.creatorOf(_user), "Wrong creator for this member user");
+                require(_creator == existedCreator, "Wrong creator for this member user");
             } else {
                 // new member
                 DACRecorder.setCreatorOf(_creator, _user);
-                DACRecorder.addMember(_creator, _user);
+                DACRecorder.addMember(_dacId, _user);
             }
         }
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][_user];
         updatePool(_pid);
         if (user.amount > 0) {
-            _sendPending(_pid, _user);
+            _sendPending(_dacId, _pid, _user);
         }
-        if (_amount > 0) {
+        if (_amount > 0 && dacState == IDACRecorder.DACState.Active) {
             uint256 remainingAmount = user.amount.add(_amount);
             require(remainingAmount >= MIN_DEPOSIT && remainingAmount <= MAX_DEPOSIT, "Deposit amount is invalid");
             user.amount = remainingAmount;
-            DACRecorder.updateUser(_creator, _user, _DACMemberCount, _initialDACPower, user.amount);
+            if (isCreator) {
+                DACRecorder.updateCreatorInfo(_user, _dacId, _DACMemberCount, _initialDACPower, user.amount, 0, false);
+            } else {
+                DACRecorder.updateMemberInfo(_user, _dacId, _DACMemberCount, _initialDACPower, user.amount, false, false);
+            }
             IERC20(pool.token).safeTransferFrom(_user, address(this), _amount);
         }
-        (, , uint256 accPower) = DACRecorder.checkUserInfo(_user);
+        (, uint256 accPower) = DACRecorder.checkUserInfo(_user);
         user.rewardDebt = user.amount.mul(accPower).mul(pool.accMetisPerShare).div(1e18);
         emit Deposit(_creator, _user, _pid, _amount, _DACMemberCount);
         return true;
@@ -180,12 +192,12 @@ contract Mining is Ownable, IMining {
     function withdraw(
         address _creator, 
         uint256 _pid, 
-        uint256 _amount
+        uint256 _amount,
+        uint256 _dacId
     ) external override returns (bool) {
         bool isCreator = _creator == address(0);
         if (!isCreator) {
-            require(DACRecorder.isCreator(_creator), "The creator is not found");
-            require(!DACRecorder.isCreator(msg.sender), "This user is a creator");
+            require(!DACRecorder.isCreator(msg.sender), "This mgs.sender is a creator");
             require(_creator == DACRecorder.creatorOf(msg.sender), "Wrong creator for this member user");
         } else {
             require(DACRecorder.isCreator(msg.sender), "The msg.sender is not a creator ");
@@ -194,22 +206,24 @@ contract Mining is Ownable, IMining {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         updatePool(_pid);
-        _sendPending(_pid, msg.sender);
+        _sendPending(_dacId, _pid, msg.sender);
         if(_amount > 0) {
             uint256 remainingAmount = user.amount.sub(_amount);
+            (,uint256 userCount,,,uint256 initialDACPower) = DACRecorder.checkDACInfo(_dacId);
             if (isCreator) {
-                if (DACRecorder.getMemberLength(msg.sender) > DACRecorder.MIN_MEMBER_COUNT() || DACRecorder.DAO_OPEN()) {
+                if (userCount > DACRecorder.MIN_MEMBER_COUNT() || DACRecorder.DAO_OPEN()) {
                     require(
                         remainingAmount >= MIN_DEPOSIT, 
                         "creatorWithdraw: Creator can't dismiss this DAC"
                     );
                 }
-                // means that the creator dismiss his/her DAC without DAO opening
+                // means that the creator dismiss DAC without DAO opening
                 if (remainingAmount == 0) {
-                    _dismissDAC(_pid, msg.sender);
-                    DAC.dismissDAC(msg.sender);
-                    DACRecorder.updateUser(address(0), msg.sender, 0, 0, 0);
+                    DACRecorder.updateCreatorInfo(msg.sender, _dacId, 0, 0, 0, pool.accMetisPerShare, true);
                     DACRecorder.removeCreator(msg.sender);
+                    DAC.dismissDAC(msg.sender);
+                } else {
+                    DACRecorder.updateCreatorInfo(msg.sender, _dacId, userCount, initialDACPower, remainingAmount, 0, true);
                 }
             } else {
                 require(
@@ -218,70 +232,49 @@ contract Mining is Ownable, IMining {
                 );
                 // means that the member leave a specific DAC
                 if (remainingAmount == 0) {
-                    _clearMemberInfo(msg.sender, _creator, user.amount);
-
-                    // update creator information
-                    DACRecorder.subCreatorPower(_creator, userInfo[_pid][_creator].amount);
-
+                    DACRecorder.updateMemberInfo(msg.sender, _dacId, 0, 0, 0, true, false);
+                    DACRecorder.subCreatorPower(_dacId, userInfo[_pid][_creator].amount);
+                    DACRecorder.delMember(_dacId, msg.sender);
                     DAC.memberLeave(_creator, msg.sender);
+                } else {
+                    DACRecorder.updateMemberInfo(msg.sender, _dacId, userCount, initialDACPower, remainingAmount, false, false);
                 }
             }
             user.amount = remainingAmount;
             IERC20(pool.token).safeTransfer(address(msg.sender), _amount);
         }
-        (, , uint256 accPower) = DACRecorder.checkUserInfo(msg.sender);
+        (,uint256 accPower) = DACRecorder.checkUserInfo(msg.sender);
         user.rewardDebt = user.amount.mul(accPower).mul(pool.accMetisPerShare).div(1e18);
         emit Withdraw(_creator, msg.sender, _pid, _amount);
         return true;
     }
 
-    function dismissDAC(uint256 _pid, address _creator) onlyDAC external override returns (bool) {
+    function dismissDAC(uint256 _dacId, uint256 _pid, address _creator) onlyDAC external override returns (bool) {
         require(DACRecorder.DAO_OPEN(), "DAO is not opened");
         require(DACRecorder.isCreator(_creator), "dismissDAC: not a creator");
         PoolInfo memory pool = poolInfo[_pid];
         UserInfo storage creator = userInfo[_pid][_creator];
         updatePool(_pid);
-        _sendPending(_pid, _creator);
-        _dismissDAC(_pid, _creator);
-        DAC.dismissDAC(msg.sender);
-        DACRecorder.updateUser(address(0), _creator, 0, 0, 0);
+        _sendPending(_dacId, _pid, _creator);
+        DACRecorder.updateCreatorInfo(_creator, _dacId, 0, 0, creator.amount, pool.accMetisPerShare, true);
         DACRecorder.removeCreator(_creator);
-        IERC20(pool.token).safeTransfer(address(msg.sender), creator.amount);
+        DAC.dismissDAC(msg.sender);
+        IERC20(pool.token).safeTransfer(_creator, creator.amount);
         creator.amount = 0;
         return true;
     }
 
     /* ========== INTERNAL FUNCTIONS ========== */
 
-    function _sendPending(uint256 _pid, address _user) internal {
+    function _sendPending(uint256 _dacId, uint256 _pid, address _user) internal {
         PoolInfo memory pool = poolInfo[_pid];
         UserInfo memory user = userInfo[_pid][_user];
-        (, , uint256 accPower) = DACRecorder.checkUserInfo(_user);
-        uint256 pending = user.amount.mul(accPower).mul(pool.accMetisPerShare).div(1e18).sub(user.rewardDebt);
+        (,uint256 accPower) = DACRecorder.checkUserInfo(_user);
+        (IDACRecorder.DACState dacState,, uint256 accMetisPerShare,,) = DACRecorder.checkDACInfo(_dacId);
+        uint256 share = dacState == IDACRecorder.DACState.Active ? pool.accMetisPerShare : accMetisPerShare;
+        uint256 pending = user.amount.mul(accPower).mul(share).div(1e18).sub(user.rewardDebt);
         if(pending > 0) {
             DACRecorder.sendRewardToVault(_user, pending);
-        }
-    }
-
-    function _clearMemberInfo(address _member, address _creator, uint256 _amount) internal {
-        DACRecorder.updateUser(_creator, _member, 0, 0, _amount);
-        DACRecorder.setCreatorOf(address(0), _member);
-        DACRecorder.delMember(_creator, _member);
-    }
-
-    function _dismissDAC(uint256 _pid, address _creator) internal {
-        PoolInfo memory pool = poolInfo[_pid];
-        uint256 memberLength = DACRecorder.getMemberLength(_creator);
-        for (uint256 index = 0; index < memberLength; index++) {
-            address memberAddr = DACRecorder.getMember(_creator, index);
-            UserInfo storage member = userInfo[_pid][memberAddr];
-            updatePool(_pid);
-            _sendPending(_pid, memberAddr);
-            _clearMemberInfo(memberAddr, _creator, member.amount);
-
-            require(DAC.memberLeave(_creator, memberAddr));
-            IERC20(pool.token).safeTransfer(address(msg.sender), member.amount);
-            member.amount = 0;
         }
     }
 

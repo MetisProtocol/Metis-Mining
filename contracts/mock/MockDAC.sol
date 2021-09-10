@@ -23,7 +23,7 @@ contract MockDAC is IDAC, Ownable {
         return true;
     }
 
-    function creatorDeposit(uint256 _amount, uint256 _DACMemberCount, uint256 _initialDACPower) public {
+    function creatorDeposit(uint256 _amount, uint256 _DACMemberCount, uint256 _initialDACPower, uint256 _dacId) public {
         // check allowance of spender
         require(
             metis.allowance(msg.sender, address(miningContract)) >= _amount, 
@@ -35,11 +35,12 @@ contract MockDAC is IDAC, Ownable {
             miningContract.tokenToPid(address(metis)), 
             _amount, 
             _DACMemberCount, 
-            _initialDACPower
+            _initialDACPower,
+            _dacId
         );
     }
 
-    function memberDeposit(address _creator, uint256 _amount, uint256 _DACMemberCount, uint256 _initialDACPower) public {
+    function memberDeposit(address _creator, uint256 _amount, uint256 _DACMemberCount, uint256 _initialDACPower, uint256 _dacId) public {
         // check allowance of spender
         require(
             metis.allowance(msg.sender, address(miningContract)) >= _amount, 
@@ -51,7 +52,8 @@ contract MockDAC is IDAC, Ownable {
             miningContract.tokenToPid(address(metis)), 
             _amount, 
             _DACMemberCount, 
-            _initialDACPower
+            _initialDACPower,
+            _dacId
         );
     }
 
@@ -59,9 +61,9 @@ contract MockDAC is IDAC, Ownable {
         emit DismissDAC(_creator);
     }
 
-    function DAODismiss() public returns (bool) {
+    function DAODismiss(uint256 _dacId) public returns (bool) {
         require(DAO_OPEN, "DAO is not opened");
-        miningContract.dismissDAC(miningContract.tokenToPid(address(metis)), msg.sender);
+        miningContract.dismissDAC(_dacId, miningContract.tokenToPid(address(metis)), msg.sender);
         emit DismissDAC(msg.sender);
     }
 
