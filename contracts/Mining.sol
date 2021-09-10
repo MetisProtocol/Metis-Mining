@@ -343,9 +343,7 @@ contract Mining is Ownable, IMining {
         }
     }
 
-    // Update team address by the previous team address.
-    function setTeamAddr(address _teamAddr) external {
-        require(msg.sender == teamAddr, "dev: wut?");
+    function setTeamAddr(address _teamAddr) external onlyOwner {
         teamAddr = _teamAddr;
     }
 
