@@ -179,7 +179,7 @@ contract Mining is Ownable, IMining {
             if (isCreator) {
                 DACRecorder.updateCreatorInfo(_user, _dacId, _DACMemberCount, _initialDACPower, user.amount, 0, false);
             } else {
-                DACRecorder.updateMemberInfo(_user, _dacId, _DACMemberCount, _initialDACPower, user.amount, false, false);
+                DACRecorder.updateMemberInfo(_user, _dacId, _DACMemberCount, _initialDACPower, user.amount, false, true);
             }
             IERC20(pool.token).safeTransferFrom(_user, address(this), _amount);
         }
@@ -219,11 +219,11 @@ contract Mining is Ownable, IMining {
                 }
                 // means that the creator dismiss DAC without DAO opening
                 if (remainingAmount == 0) {
-                    DACRecorder.updateCreatorInfo(msg.sender, _dacId, 0, 0, _amount, pool.accMetisPerShare, true);
+                    DACRecorder.updateCreatorInfo(msg.sender, _dacId, 0, 0, remainingAmount, pool.accMetisPerShare, true);
                     DACRecorder.removeCreator(msg.sender);
                     DAC.dismissDAC(msg.sender);
                 } else {
-                    DACRecorder.updateCreatorInfo(msg.sender, _dacId, userCount, initialDACPower, _amount, 0, true);
+                    DACRecorder.updateCreatorInfo(msg.sender, _dacId, userCount, initialDACPower, remainingAmount, 0, true);
                 }
             } else {
                 require(

@@ -118,6 +118,21 @@ describe("Mining Contract", function () {
                 '1'
             );
 
+            await this.mockDAC.connect(this.carol).creatorDeposit(
+                '2000000000000000000000',
+                '1',
+                '80',
+                '2'
+            );
+
+            await this.mockDAC.connect(this.daniel).memberDeposit(
+                this.carol.address,
+                '2000000000000000000000',
+                '2',
+                '80',
+                '2'
+            );
+
             // const dacInfo = await this.DACRecorder.checkDACInfo(1);
             // console.log('dac info: ', dacInfo);
             
@@ -135,6 +150,16 @@ describe("Mining Contract", function () {
             await TimeHelper.advanceTimeAndBlock(1000);
             const pendingBobRewards = await this.mining.pendingMetis(1, 0, this.bob.address);
             expect(pendingBobRewards).to.equal(0);
+            // const carolWeight = await this.DACRecorder.userWeight(this.carol.address);
+            // const danielWeight = await this.DACRecorder.userWeight(this.daniel.address);
+            // const totalWeight = await this.DACRecorder.totalWeight();
+            // console.log('carol weight: ', carolWeight.toString());
+            // console.log('daniel weight: ', danielWeight.toString());
+            // console.log('total weight: ', totalWeight.toString());
+            // const pendingCarolRewards = await this.mining.pendingMetis(2, 0, this.carol.address);
+            // const pendingDanielRewards = await this.mining.pendingMetis(2, 0, this.daniel.address);
+            // console.log('pendingCarolRewards: ', pendingCarolRewards.toString());
+            // console.log('pendingDanielRewards: ', pendingDanielRewards.toString());
             await this.mining.connect(this.bob).withdraw(
                 this.alice.address,
                 '0',
@@ -232,46 +257,27 @@ describe("Mining Contract", function () {
                 '1'
             );
             const startTime = (await this.mining.startTimestamp()).toNumber();
-            // console.log('start block.timestamp: ', startTime);
-            // const initialTime = (await TimeHelper.latestBlockTimestamp()).toNumber();
-            // console.log('initial block.timestamp: ', initialTime);
 
             await TimeHelper.advanceTimeAndBlock(10);
-            // console.log('first move block.timestamp: ', (await TimeHelper.latestBlockTimestamp()).toNumber());
             await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0', '1');
             expect(await this.vault.shares(this.alice.address)).to.equal("0");
 
             await TimeHelper.advanceTimeAndBlock(20);
-            // console.log('second move block.timestamp: ', (await TimeHelper.latestBlockTimestamp()).toNumber());
             await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0', '1');
             expect(await this.vault.shares(this.alice.address)).to.equal("0");
 
             await TimeHelper.advanceTimeAndBlock(30);
-            // console.log('third move block.timestamp: ', (await TimeHelper.latestBlockTimestamp()).toNumber());
             await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0', '1');
             expect(await this.vault.shares(this.alice.address)).to.equal("0");
 
             await TimeHelper.advanceTimeAndBlock(40);
-            // const fouthTime = (await TimeHelper.latestBlockTimestamp()).toNumber();
-            // console.log('fouth move block.timestamp: ', fouthTime);
-            // console.log(((await this.mining.poolInfo(0)).lastRewardTimestamp).toNumber());
             const accTime = ((await this.mining.calcMetisReward(startTime, '100')).accTime.toNumber());
-            // console.log('======accTime', accTime);
-            // console.log('======reward', ((await this.mining.calcMetisReward(startTime, '100')).MetisReward.toString()));
-            // const pendingAlice = (await this.mining.pendingMetis('0', this.alice.address)).toString();
-            // console.log('alice pending rewards: ', pendingAlice);
             await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0', '1');
-            // console.log(((await this.mining.poolInfo(0)).lastRewardTimestamp).toNumber());
-            // console.log(((await this.mining.poolInfo(0)).accMetisPerShare).toString());
             const userReward = (accTime + 1) * 1e15;
-            // console.log('alice rewards: ', userReward.toString());
             expect(await this.vault.shares(this.alice.address)).to.equal(userReward.toString());
         });
         it("should distribute Metis properly for each creators", async function () {
             const startTime = (await this.mining.startTimestamp()).toNumber();
-            // console.log('start block.timestamp: ', startTime);
-            // const initialTime = (await TimeHelper.latestBlockTimestamp()).toNumber();
-            // console.log('initial block.timestamp: ', initialTime);
 
             // Alice deposit 1000 Metis with 100 power at the first time
             await this.mockDAC.connect(this.alice).creatorDeposit(
@@ -280,8 +286,6 @@ describe("Mining Contract", function () {
                 '100',
                 '1'
             );
-            // const secondTime = (await TimeHelper.latestBlockTimestamp()).toNumber();
-            // console.log('second block.timestamp: ', secondTime);
 
             // Bob deposit 1000 Metis with 100 power at second time
             await this.mockDAC.connect(this.bob).creatorDeposit(
@@ -290,38 +294,21 @@ describe("Mining Contract", function () {
                 '100',
                 '2'
             );
-            // const aliceAmount = (await this.mining.userInfo('0', this.alice.address)).amount.toString();
-            // console.log('alice amount: ', aliceAmount);
-            // const bobAmount = (await this.mining.userInfo('0', this.bob.address)).amount.toString();
-            // console.log('bob amount: ',bobAmount);
-            // const aliceAccPower = (await this.DACRecorder.checkUserInfo(this.alice.address)).accPower.toString();
-            // console.log('alice acc power: ', aliceAccPower);
-            // const bobAccPower = (await this.DACRecorder.checkUserInfo(this.bob.address)).accPower.toString();
-            // console.log('bob acc power: ', bobAccPower);
 
             // advance 100 to block.timestamp and one block
             await TimeHelper.advanceTimeAndBlock(100);
-            // const pendingAlice = (await this.mining.pendingMetis('0', this.alice.address)).toString();
-            // console.log('alice pending rewards: ', pendingAlice);
-            // const pendingBob = (await this.mining.pendingMetis('0', this.bob.address)).toString();
-            // console.log('bob pending rewards: ', pendingBob);
             const accTime = ((await this.mining.calcMetisReward(startTime, '100')).accTime.toNumber());
-            // const totalReward = ((await this.mining.calcMetisReward(startTime, '100')).MetisReward.toString());
-            // console.log('accTime: ', accTime);
-            // console.log('totalReward: ', totalReward);
             
             const aliceReward = (accTime + 1) * 1e15 * 0.5;
             await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0', '1');
-            // console.log('alice rewards: ', aliceReward);
             expect(await this.vault.shares(this.alice.address)).to.equal(aliceReward.toString());
 
             const bobReward = (accTime + 2) * 1e15 * 0.5;
             await this.mining.connect(this.bob).withdraw(ADDRESS_ZERO, '0', '0', '2');
-            // console.log('bob rewards: ', bobReward);
             expect(await this.vault.shares(this.bob.address)).to.equal(bobReward.toString());
         });
         it("should distribute Metis properly for different cretors and members", async function () {
-            const startTime = (await this.mining.startTimestamp()).toNumber();
+            // const startTime = (await this.mining.startTimestamp()).toNumber();
             // Alice deposit 1000 Metis with 100 power at the first time
             await this.mockDAC.connect(this.alice).creatorDeposit(
                 '1000000000000000000000',
@@ -330,41 +317,18 @@ describe("Mining Contract", function () {
                 '1'
             );
             await TimeHelper.advanceTimeAndBlock(100);
-            let accTime = ((await this.mining.calcMetisReward(startTime, '100')).accTime.toNumber());
-            // let pendingAlice = (await this.mining.pendingMetis('1', '0', this.alice.address)).toString();
-            // console.log('alice pending rewards: ', pendingAlice);
-            // let pendingBob = (await this.mining.pendingMetis('1', '0', this.bob.address)).toString();
-            // console.log('bob pending rewards: ', pendingBob);
-            // const firstTime = (await TimeHelper.latestBlockTimestamp()).toNumber();
-            // console.log('firstTime', firstTime);
-            let rewardTime = ((await this.mining.poolInfo(0)).lastRewardTimestamp).toNumber();
-            // console.log('lastRewardTimestamp', rewardTime);
-            // console.log('Metis Reward', ((await this.mining.calcMetisReward(rewardTime, '100')).MetisReward.toString()));
-            // console.log('first alice amount', (await this.mining.userInfo('0', this.alice.address)).amount.toString());
-            // console.log('first alice accPower', (await this.DACRecorder.checkUserInfo(this.alice.address)).accPower.toString());
-            // console.log('first alice rewardDebt', (await this.mining.userInfo('0', this.alice.address)).rewardDebt.toString());
-            // console.log('first pool accMetisPerShare', (await this.mining.poolInfo('0')).accMetisPerShare.toString());
+            // let accTime = ((await this.mining.calcMetisReward(startTime, '100')).accTime.toNumber());
+            // console.log('accTime', accTime);
+            let pendingAlice = (await this.mining.pendingMetis('1', '0', this.alice.address));
             await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0', '1');
-            accTime += 1;
-            const secondTime = (await TimeHelper.latestBlockTimestamp()).toNumber();
-            // console.log('secondTime', secondTime);
-            rewardTime = secondTime;
-            // console.log('lastRewardTimestamp', rewardTime);
-            // console.log('Metis Reward', ((await this.mining.calcMetisReward(rewardTime, '100')).MetisReward.toString()));
-            // console.log('second alice amount', (await this.mining.userInfo('0', this.alice.address)).amount.toString());
-            // console.log('second alice accPower', (await this.DACRecorder.checkUserInfo(this.alice.address)).accPower.toString());
-            // console.log('second alice rewardDebt', (await this.mining.userInfo('0', this.alice.address)).rewardDebt.toString());
-            // console.log('second pool accMetisPerShare', (await this.mining.poolInfo('0')).accMetisPerShare.toString());
-            let aliceReward = accTime * 1e15;
-            // console.log('alice rewards: ', aliceReward);
-            pendingAlice = (await this.mining.pendingMetis('1', '0', this.alice.address)).toString();
-            // console.log('alice pending rewards: ', pendingAlice);
-            expect(await this.vault.shares(this.alice.address)).to.equal(aliceReward.toString());
-            
+            let aliceRewards = pendingAlice.add(1e15);
+            expect(await this.vault.shares(this.alice.address)).to.equal(aliceRewards.toString());
 
-
-            pendingBob = (await this.mining.pendingMetis('1', '0', this.bob.address)).toString();
-            // console.log('bob pending rewards: ', pendingBob);
+            // pendingAlice = await this.mining.pendingMetis('1', '0', this.alice.address);
+            // console.log('pendingAlice1', pendingAlice.toString());
+            // await TimeHelper.advanceTimeAndBlock(1);
+            // pendingAlice = await this.mining.pendingMetis('1', '0', this.alice.address);
+            // console.log('pendingAlice2', pendingAlice.toString());
 
             // Alice invite Bob to DAC and member Bob deposit 100 Metis with 80 power at this time
             await this.mockDAC.connect(this.bob).memberDeposit(
@@ -375,20 +339,34 @@ describe("Mining Contract", function () {
                 '100',
                 '1'
             );
-            accTime += 1;
-
-            // Alice withdraw rewards
             await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0', '1');
-            accTime += 1;
 
-            aliceReward = (accTime - 1) * 1e15 + 1e15 * (100 * 1000 / (100 * 1000 + 100 * 80)).toFixed(10);
-            expect(await this.vault.shares(this.alice.address)).to.equal(aliceReward.toString());
-
-            // Bob witdraw 2 seconds rewards
-            await this.mining.connect(this.bob).withdraw(this.alice.address, '0', '0', '1');
-            accTime += 1;
-            bobReward = '148148148144000';
-            expect(await this.vault.shares(this.bob.address)).to.equal(bobReward);
+            // pendingAlice = await this.mining.pendingMetis('1', '0', this.alice.address);
+            // console.log('pendingAlice3', pendingAlice.toString());
+            // await TimeHelper.advanceTimeAndBlock(1);
+            // const alicePerSecond = await this.mining.pendingMetis('1', '0', this.alice.address);
+            // console.log('alicePerSecond', alicePerSecond.toString());
+            // await TimeHelper.advanceTimeAndBlock(100);
+            // pendingAlice = await this.mining.pendingMetis('1', '0', this.alice.address);
+            // let pendingBob = await this.mining.pendingMetis('1', '0', this.bob.address);
+            // console.log('pendingAlice', pendingAlice.toString());
+            // console.log('pendingBob', pendingBob.toString());
+            // const aliceShare = await this.vault.shares(this.alice.address);
+            // console.log('aliceShare', aliceShare.toString());
+            // aliceRewards = aliceShare.add(pendingAlice);
+            // console.log('aliceRewards', aliceRewards.toString());
+            // // Alice withdraw rewards
+            // const totalShare = await this.vault.totalShares();
+            // console.log('vault totalShare', totalShare.toString());
+            await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0', '1');
+            // expect(await this.vault.shares(this.alice.address)).to.equal(aliceRewards.toString());
+            // const pendingBob = await this.mining.pendingMetis('1', '0', this.bob.address);
+            // console.log('pendingBob', pendingBob.toString());
+            // // Bob witdraw 2 seconds rewards
+            // await this.mining.connect(this.bob).withdraw(this.alice.address, '0', '0', '1');
+            // accTime += 1;
+            // bobReward = '148148148144000';
+            // expect(await this.vault.shares(this.bob.address)).to.equal(bobReward);
         });
         it("should claim Metis properly from Vault", async function () {
             const startTime = (await this.mining.startTimestamp()).toNumber();

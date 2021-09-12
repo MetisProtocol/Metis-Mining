@@ -26,6 +26,7 @@ contract DACRecorder is Ownable, IDACRecorder {
     struct UserInfo {
         Role userRole;
         uint256 accPower; // Accumulated power for user mining.
+        uint256 amount;
     }
 
     // The Metis TOKEN!
@@ -159,7 +160,8 @@ contract DACRecorder is Ownable, IDACRecorder {
         if (_withdrawAll) {
             // creator withdraw all => dismiss DAC
             totalWeight = totalWeight.sub(userWeight[_user]);
-            stakedMetis = stakedMetis.sub(_amount);
+            stakedMetis = stakedMetis.sub(user.amount);
+            user.amount = _amount;
             user.userRole = Role.None;
             user.accPower = 0;
             userWeight[_user] = 0;
@@ -168,9 +170,9 @@ contract DACRecorder is Ownable, IDACRecorder {
             dac.accMetisPerShare = _accMetisPerShare;
         } else {
             // update stakedMetis
-            uint256 prevAmount = user.accPower > 0 ? userWeight[_user].div(user.accPower) : 0;
-            stakedMetis = stakedMetis.sub(prevAmount);
-            stakedMetis = stakedMetis.add(_amount);
+            stakedMetis = stakedMetis.sub(user.amount);
+            user.amount = _amount;
+            stakedMetis = stakedMetis.add(user.amount);
             // update user & dac info
             user.userRole = Role.Creator;
             user.accPower = _calcAccPowerForCreator(_initialDACPower, _DACMemberCount);
@@ -203,7 +205,8 @@ contract DACRecorder is Ownable, IDACRecorder {
 
         if (_withdrawAll) {
             totalWeight = totalWeight.sub(userWeight[_user]);
-            stakedMetis = stakedMetis.sub(_amount);
+            stakedMetis = stakedMetis.sub(user.amount);
+            user.amount = _amount;
             user.userRole = Role.None;
             user.accPower = 0;
             userWeight[_user] = 0;
@@ -221,14 +224,22 @@ contract DACRecorder is Ownable, IDACRecorder {
         } else {
             if (_isDeposit) {
                 require(dac.state == DACState.Active, "This DAC is inactive");
+
+                if (creator.accPower > 0) {
+                    uint256 creatorAmount = userWeight[dac.creator].div(creator.accPower);
+                    creator.accPower = _calcAccPowerForCreator(_initialDACPower, _DACMemberCount);
+                    totalWeight = totalWeight.sub(userWeight[dac.creator]);
+                    userWeight[dac.creator] = creator.accPower.mul(creatorAmount);
+                    totalWeight = totalWeight.add(userWeight[dac.creator]);
+                }
             }
             user.userRole = Role.Member;
             user.accPower = MEMBER_POWER;
             dac.userCount = _DACMemberCount;
             // update stakedMetis
-            uint256 prevAmount = user.accPower > 0 ? userWeight[_user].div(user.accPower) : 0;
-            stakedMetis = stakedMetis.sub(prevAmount);
-            stakedMetis = stakedMetis.add(_amount);
+            stakedMetis = stakedMetis.sub(user.amount);
+            user.amount = _amount;
+            stakedMetis = stakedMetis.add(user.amount);
             userWeight[_user] = user.accPower.mul(_amount);
             totalWeight = totalWeight.add(userWeight[_user]);
         }
