@@ -218,7 +218,6 @@ contract DACRecorder is Ownable, IDACRecorder {
             }
 
             dac.userCount = dac.userCount.sub(1);
-            dac.members.remove(_user);
         } else {
             if (_isDeposit) {
                 require(dac.state == DACState.Active, "This DAC is inactive");
@@ -226,9 +225,6 @@ contract DACRecorder is Ownable, IDACRecorder {
             user.userRole = Role.Member;
             user.accPower = MEMBER_POWER;
             dac.userCount = _DACMemberCount;
-            if (!dac.members.contains(_user)) {
-                dac.members.add(_user);
-            }
             // update stakedMetis
             uint256 prevAmount = user.accPower > 0 ? userWeight[_user].div(user.accPower) : 0;
             stakedMetis = stakedMetis.sub(prevAmount);
