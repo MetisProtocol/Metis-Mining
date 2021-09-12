@@ -219,11 +219,11 @@ contract Mining is Ownable, IMining {
                 }
                 // means that the creator dismiss DAC without DAO opening
                 if (remainingAmount == 0) {
-                    DACRecorder.updateCreatorInfo(msg.sender, _dacId, 0, 0, 0, pool.accMetisPerShare, true);
+                    DACRecorder.updateCreatorInfo(msg.sender, _dacId, 0, 0, _amount, pool.accMetisPerShare, true);
                     DACRecorder.removeCreator(msg.sender);
                     DAC.dismissDAC(msg.sender);
                 } else {
-                    DACRecorder.updateCreatorInfo(msg.sender, _dacId, userCount, initialDACPower, remainingAmount, 0, true);
+                    DACRecorder.updateCreatorInfo(msg.sender, _dacId, userCount, initialDACPower, _amount, 0, true);
                 }
             } else {
                 require(

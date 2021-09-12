@@ -101,6 +101,50 @@ describe("Mining Contract", function () {
             expect(await this.metis.balanceOf(this.alice.address)).to.equal("3000000000000000000000");
         });
 
+        it("creator withdraw all without DAO opening", async function () {
+            await this.mockDAC.connect(this.alice).creatorDeposit(
+                '2000000000000000000000',
+                '1',
+                '80',
+                '1'
+            );
+            expect(await this.metis.balanceOf(this.alice.address)).to.equal("1000000000000000000000");
+
+            await this.mockDAC.connect(this.bob).memberDeposit(
+                this.alice.address,
+                '2000000000000000000000',
+                '2',
+                '80',
+                '1'
+            );
+
+            // const dacInfo = await this.DACRecorder.checkDACInfo(1);
+            // console.log('dac info: ', dacInfo);
+            
+            await this.mining.connect(this.alice).withdraw(
+                ADDRESS_ZERO,
+                '0',
+                '2000000000000000000000',
+                '1'
+            );
+            expect(await this.metis.balanceOf(this.alice.address)).to.equal("3000000000000000000000");
+            // const dacInfo = await this.DACRecorder.checkDACInfo(1);
+            // console.log('dac info: ', dacInfo);
+            // expect(dacInfo[0]).to.equal(1);
+            expect(await this.metis.balanceOf(this.bob.address)).to.equal("1000000000000000000000");
+            await TimeHelper.advanceTimeAndBlock(1000);
+            const pendingBobRewards = await this.mining.pendingMetis(1, 0, this.bob.address);
+            expect(pendingBobRewards).to.equal(0);
+            await this.mining.connect(this.bob).withdraw(
+                this.alice.address,
+                '0',
+                '2000000000000000000000',
+                '1'
+            );
+            expect(await this.metis.balanceOf(this.bob.address)).to.equal("3000000000000000000000");
+            expect(await this.vault.shares(this.bob.address)).to.equal("0");
+        });
+
         it("can't withdraw all with DAO opening", async function () {
             await this.DACRecorder.setDAOOpen(true);
             await this.mockDAC.connect(this.alice).creatorDeposit(
@@ -287,9 +331,9 @@ describe("Mining Contract", function () {
             );
             await TimeHelper.advanceTimeAndBlock(100);
             let accTime = ((await this.mining.calcMetisReward(startTime, '100')).accTime.toNumber());
-            let pendingAlice = (await this.mining.pendingMetis('1', '0', this.alice.address)).toString();
+            // let pendingAlice = (await this.mining.pendingMetis('1', '0', this.alice.address)).toString();
             // console.log('alice pending rewards: ', pendingAlice);
-            let pendingBob = (await this.mining.pendingMetis('1', '0', this.bob.address)).toString();
+            // let pendingBob = (await this.mining.pendingMetis('1', '0', this.bob.address)).toString();
             // console.log('bob pending rewards: ', pendingBob);
             // const firstTime = (await TimeHelper.latestBlockTimestamp()).toNumber();
             // console.log('firstTime', firstTime);

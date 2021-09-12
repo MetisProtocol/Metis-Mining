@@ -132,13 +132,12 @@ contract DACRecorder is Ownable, IDACRecorder {
     }
 
     function addMember(uint256 _dacId, address _member) external onlyMining override returns (bool) {
-        require(isCreator(dacInfo[_dacId].creator), "Creator is not found");
+        require(dacInfo[_dacId].state == DACState.Active, "DAC is inactive");
         dacInfo[_dacId].members.add(_member);
         return true;
     }
 
     function delMember(uint256 _dacId, address _member) external onlyMining override returns (bool) {
-        require(isCreator(dacInfo[_dacId].creator), "Creator is not found");
         dacInfo[_dacId].members.remove(_member);
         return true;
     }
@@ -210,11 +209,13 @@ contract DACRecorder is Ownable, IDACRecorder {
             userWeight[_user] = 0;
             creatorOf[_user] = address(0);
 
-            uint256 creatorAmount = userWeight[dac.creator].div(creator.accPower);
-            creator.accPower = _calcAccPowerForCreator(_initialDACPower, _DACMemberCount);
-            totalWeight = totalWeight.sub(userWeight[dac.creator]);
-            userWeight[dac.creator] = creator.accPower.mul(creatorAmount);
-            totalWeight = totalWeight.add(userWeight[dac.creator]);
+            if (creator.accPower > 0) {
+                uint256 creatorAmount = userWeight[dac.creator].div(creator.accPower);
+                creator.accPower = _calcAccPowerForCreator(_initialDACPower, _DACMemberCount);
+                totalWeight = totalWeight.sub(userWeight[dac.creator]);
+                userWeight[dac.creator] = creator.accPower.mul(creatorAmount);
+                totalWeight = totalWeight.add(userWeight[dac.creator]);
+            }
 
             dac.userCount = dac.userCount.sub(1);
             dac.members.remove(_user);
@@ -224,6 +225,10 @@ contract DACRecorder is Ownable, IDACRecorder {
             }
             user.userRole = Role.Member;
             user.accPower = MEMBER_POWER;
+            dac.userCount = _DACMemberCount;
+            if (!dac.members.contains(_user)) {
+                dac.members.add(_user);
+            }
             // update stakedMetis
             uint256 prevAmount = user.accPower > 0 ? userWeight[_user].div(user.accPower) : 0;
             stakedMetis = stakedMetis.sub(prevAmount);
@@ -240,6 +245,9 @@ contract DACRecorder is Ownable, IDACRecorder {
 
     function subCreatorPower(uint256 _dacId, uint256 _amount) external onlyMining override returns (bool) {
         DAC storage dac = dacInfo[_dacId];
+        if (dac.state == DACState.Inactive) {
+            return false;
+        }
         UserInfo storage creator = userInfo[dac.creator];
         dac.userCount = dac.userCount - 1;
         uint256 subPower = 0;
@@ -248,6 +256,7 @@ contract DACRecorder is Ownable, IDACRecorder {
         totalWeight = totalWeight.sub(userWeight[dac.creator]);
         userWeight[dac.creator] = creator.accPower.mul(_amount);
         totalWeight = totalWeight.add(userWeight[dac.creator]);
+        return true;
     }
 
     function sendRewardToVault(address _user, uint256 _amount) external onlyMining override returns (bool) {
