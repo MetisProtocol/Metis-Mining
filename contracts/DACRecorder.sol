@@ -211,27 +211,10 @@ contract DACRecorder is Ownable, IDACRecorder {
             user.accPower = 0;
             userWeight[_user] = 0;
             creatorOf[_user] = address(0);
-
-            if (creator.accPower > 0) {
-                uint256 creatorAmount = userWeight[dac.creator].div(creator.accPower);
-                creator.accPower = _calcAccPowerForCreator(_initialDACPower, _DACMemberCount);
-                totalWeight = totalWeight.sub(userWeight[dac.creator]);
-                userWeight[dac.creator] = creator.accPower.mul(creatorAmount);
-                totalWeight = totalWeight.add(userWeight[dac.creator]);
-            }
-
             dac.userCount = dac.userCount.sub(1);
         } else {
             if (_isDeposit) {
                 require(dac.state == DACState.Active, "This DAC is inactive");
-
-                if (creator.accPower > 0) {
-                    uint256 creatorAmount = userWeight[dac.creator].div(creator.accPower);
-                    creator.accPower = _calcAccPowerForCreator(_initialDACPower, _DACMemberCount);
-                    totalWeight = totalWeight.sub(userWeight[dac.creator]);
-                    userWeight[dac.creator] = creator.accPower.mul(creatorAmount);
-                    totalWeight = totalWeight.add(userWeight[dac.creator]);
-                }
             }
             user.userRole = Role.Member;
             user.accPower = MEMBER_POWER;
@@ -242,6 +225,13 @@ contract DACRecorder is Ownable, IDACRecorder {
             stakedMetis = stakedMetis.add(user.amount);
             userWeight[_user] = user.accPower.mul(_amount);
             totalWeight = totalWeight.add(userWeight[_user]);
+        }
+        if (creator.accPower > 0) {
+            uint256 creatorAmount = creator.amount;
+            creator.accPower = _calcAccPowerForCreator(_initialDACPower, _DACMemberCount);
+            totalWeight = totalWeight.sub(userWeight[dac.creator]);
+            userWeight[dac.creator] = creator.accPower.mul(creatorAmount);
+            totalWeight = totalWeight.add(userWeight[dac.creator]);
         }
         return true;
     }
