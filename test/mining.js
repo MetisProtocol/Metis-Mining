@@ -308,7 +308,6 @@ describe("Mining Contract", function () {
             expect(await this.vault.shares(this.bob.address)).to.equal(bobReward.toString());
         });
         it("should distribute Metis properly for different cretors and members", async function () {
-            // const startTime = (await this.mining.startTimestamp()).toNumber();
             // Alice deposit 1000 Metis with 100 power at the first time
             await this.mockDAC.connect(this.alice).creatorDeposit(
                 '1000000000000000000000',
@@ -317,18 +316,9 @@ describe("Mining Contract", function () {
                 '1'
             );
             await TimeHelper.advanceTimeAndBlock(100);
-            // let accTime = ((await this.mining.calcMetisReward(startTime, '100')).accTime.toNumber());
-            // console.log('accTime', accTime);
-            let pendingAlice = (await this.mining.pendingMetis('1', '0', this.alice.address));
             await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0', '1');
-            let aliceRewards = pendingAlice.add(1e15);
-            expect(await this.vault.shares(this.alice.address)).to.equal(aliceRewards.toString());
 
-            // pendingAlice = await this.mining.pendingMetis('1', '0', this.alice.address);
-            // console.log('pendingAlice1', pendingAlice.toString());
-            // await TimeHelper.advanceTimeAndBlock(1);
-            // pendingAlice = await this.mining.pendingMetis('1', '0', this.alice.address);
-            // console.log('pendingAlice2', pendingAlice.toString());
+            const firstAliceShare = await this.vault.shares(this.alice.address);
 
             // Alice invite Bob to DAC and member Bob deposit 100 Metis with 80 power at this time
             await this.mockDAC.connect(this.bob).memberDeposit(
@@ -339,34 +329,12 @@ describe("Mining Contract", function () {
                 '100',
                 '1'
             );
+            await TimeHelper.advanceTimeAndBlock(100);
             await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0', '1');
-
-            // pendingAlice = await this.mining.pendingMetis('1', '0', this.alice.address);
-            // console.log('pendingAlice3', pendingAlice.toString());
-            // await TimeHelper.advanceTimeAndBlock(1);
-            // const alicePerSecond = await this.mining.pendingMetis('1', '0', this.alice.address);
-            // console.log('alicePerSecond', alicePerSecond.toString());
-            // await TimeHelper.advanceTimeAndBlock(100);
-            // pendingAlice = await this.mining.pendingMetis('1', '0', this.alice.address);
-            // let pendingBob = await this.mining.pendingMetis('1', '0', this.bob.address);
-            // console.log('pendingAlice', pendingAlice.toString());
-            // console.log('pendingBob', pendingBob.toString());
-            // const aliceShare = await this.vault.shares(this.alice.address);
-            // console.log('aliceShare', aliceShare.toString());
-            // aliceRewards = aliceShare.add(pendingAlice);
-            // console.log('aliceRewards', aliceRewards.toString());
-            // // Alice withdraw rewards
-            // const totalShare = await this.vault.totalShares();
-            // console.log('vault totalShare', totalShare.toString());
-            await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0', '1');
-            // expect(await this.vault.shares(this.alice.address)).to.equal(aliceRewards.toString());
-            // const pendingBob = await this.mining.pendingMetis('1', '0', this.bob.address);
-            // console.log('pendingBob', pendingBob.toString());
-            // // Bob witdraw 2 seconds rewards
-            // await this.mining.connect(this.bob).withdraw(this.alice.address, '0', '0', '1');
-            // accTime += 1;
-            // bobReward = '148148148144000';
-            // expect(await this.vault.shares(this.bob.address)).to.equal(bobReward);
+            await this.mining.connect(this.bob).withdraw(this.alice.address, '0', '0', '1');
+            const secondAliceShare = await this.vault.shares(this.alice.address);
+            const bobShare = await this.vault.shares(this.bob.address);
+            expect(secondAliceShare.sub(firstAliceShare).add(bobShare)).to.equal('103000000000000000');
         });
         it("should claim Metis properly from Vault", async function () {
             const startTime = (await this.mining.startTimestamp()).toNumber();
