@@ -95,7 +95,21 @@ describe("Mining Contract", function () {
             await this.mining.connect(this.alice).withdraw(
                 ADDRESS_ZERO,
                 '0',
-                '2000000000000000000000',
+                '500000000000000000000',
+                '1'
+            );
+            expect(await this.metis.balanceOf(this.alice.address)).to.equal("1500000000000000000000");
+            await this.mining.connect(this.alice).withdraw(
+                ADDRESS_ZERO,
+                '0',
+                '1000000000000000000000',
+                '1'
+            );
+            expect(await this.metis.balanceOf(this.alice.address)).to.equal("2500000000000000000000");
+            await this.mining.connect(this.alice).withdraw(
+                ADDRESS_ZERO,
+                '0',
+                '500000000000000000000',
                 '1'
             );
             expect(await this.metis.balanceOf(this.alice.address)).to.equal("3000000000000000000000");

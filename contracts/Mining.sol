@@ -223,7 +223,7 @@ contract Mining is Ownable, IMining {
                     DACRecorder.removeCreator(msg.sender);
                     DAC.dismissDAC(msg.sender);
                 } else {
-                    DACRecorder.updateCreatorInfo(msg.sender, _dacId, userCount, initialDACPower, remainingAmount, 0, true);
+                    DACRecorder.updateCreatorInfo(msg.sender, _dacId, userCount, initialDACPower, remainingAmount, 0, false);
                 }
             } else {
                 require(

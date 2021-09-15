@@ -7,7 +7,6 @@ async function main() {
     console.log('signer:', signer);
 
     const MockMetisTokenFactory = await hre.ethers.getContractFactory('MockMetisToken');
-    const MockDACFactory = await hre.ethers.getContractFactory('MockDAC');
     const DistributorFactory = await hre.ethers.getContractFactory('Distributor');
     const VaultFactory = await hre.ethers.getContractFactory('Vault');
     const MiningFactory = await hre.ethers.getContractFactory('Mining');
@@ -26,6 +25,15 @@ async function main() {
 
     await MockMetis.mint(signer, '1000000000000000000000000');
     console.log('Mint 1000000 Mock Metis token to signer');
+
+    await MockMetis.mint('0x6cFB8E9B1c625a8CccC315A8dffA476069557cfd', '10000000000000000000000');
+    console.log('Mint 10000 Mock Metis token to 0x6cFB8E9B1c625a8CccC315A8dffA476069557cfd');
+    await MockMetis.mint('0x1838Be1Ce335f3658072a1db6AD3A6b04629bF5C', '10000000000000000000000');
+    console.log('Mint 10000 Mock Metis token to 0x1838Be1Ce335f3658072a1db6AD3A6b04629bF5C');
+    await MockMetis.mint('0x7DbaCf78739bd74e7Eb89BeC0F3F526dcE694ca0', '10000000000000000000000');
+    console.log('Mint 10000 Mock Metis token to 0x7DbaCf78739bd74e7Eb89BeC0F3F526dcE694ca0');
+    await MockMetis.mint('0xc180Dc7C826e023C8C7CA5BA38F340D7a5dA1421', '10000000000000000000000');
+    console.log('Mint 10000 Mock Metis token to 0xc180Dc7C826e023C8C7CA5BA38F340D7a5dA1421');
     
 
     const Vault = await VaultFactory.deploy(MockMetis.address, );
@@ -46,16 +54,9 @@ async function main() {
     await Mining.deployed();
     console.log('Mining deployed to: ', Mining.address);
 
-    const MockDAC = await MockDACFactory.deploy(
-        Mining.address,
-        MockMetis.address,
-    );
-    await MockDAC.deployed();
-    console.log('MockDAC deployed to: ', MockDAC.address);
-
     const addresses = {
         MockMetis: MockMetis.address,
-        MockDAC: MockDAC.address,
+        DAC: '0xBd88F35C2760ff82aeE9074254a74A62D704a669',
         DACRecorder: DACRecorder.address,
         Mining: Mining.address,
         Vault: Vault.address,
@@ -75,7 +76,7 @@ async function main() {
     await Vault.setDACRecorder(DACRecorder.address);
     console.log('Set DACRecorder contract for Vault');
     // set DAC for Mining contract
-    await Mining.functions['setDAC'](MockDAC.address);
+    await Mining.functions['setDAC']('0xBd88F35C2760ff82aeE9074254a74A62D704a669');
     console.log('Set DAC contract for Mining');
     // add Metis pool
     await Mining.add(100, MockMetis.address, false, );
