@@ -226,6 +226,12 @@ contract DACRecorder is Ownable, IDACRecorder {
             stakedMetis = stakedMetis.add(user.amount);
             userWeight[_user] = user.accPower.mul(_amount);
             totalWeight = totalWeight.add(userWeight[_user]);
+            if (creator.accPower > 0) {
+                creator.accPower = _calcAccPowerForCreator(_initialDACPower, _DACMemberCount);
+                totalWeight = totalWeight.sub(userWeight[dac.creator]);
+                userWeight[dac.creator] = creator.accPower.mul(_amount);
+                totalWeight = totalWeight.add(userWeight[dac.creator]);
+            }
         }
         return true;
     }
