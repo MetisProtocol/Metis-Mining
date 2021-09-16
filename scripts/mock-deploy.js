@@ -76,7 +76,7 @@ async function main() {
     await Vault.setDACRecorder(DACRecorder.address);
     console.log('Set DACRecorder contract for Vault');
     // set DAC for Mining contract
-    await Mining.functions['setDAC']('0xBd88F35C2760ff82aeE9074254a74A62D704a669');
+    await Mining.functions['setDAC']('0x06D59f12c51B981878Dee93B736242E2f283DfaD');
     console.log('Set DAC contract for Mining');
     // add Metis pool
     await Mining.add(100, MockMetis.address, false, );

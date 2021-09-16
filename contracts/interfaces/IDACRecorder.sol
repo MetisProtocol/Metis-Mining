@@ -7,7 +7,7 @@ interface IDACRecorder {
     function checkUserInfo(address _user) 
         external 
         view 
-        returns (Role userRole, uint256 accPower);
+        returns (Role userRole, uint256 accPower, uint256 amount);
     function checkDACInfo(uint256 _dacId) 
         external 
         view 

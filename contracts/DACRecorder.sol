@@ -67,10 +67,11 @@ contract DACRecorder is Ownable, IDACRecorder {
         external 
         view 
         override
-        returns (Role userRole, uint256 accPower) 
+        returns (Role userRole, uint256 accPower, uint256 amount) 
     {
         userRole = userInfo[_user].userRole;
         accPower = userInfo[_user].accPower;
+        amount = userInfo[_user].amount;
     }
 
     function checkDACInfo(uint256 _dacId) 
@@ -246,7 +247,7 @@ contract DACRecorder is Ownable, IDACRecorder {
             return false;
         }
         UserInfo storage creator = userInfo[dac.creator];
-        dac.userCount = dac.userCount - 1;
+        dac.userCount = dac.userCount.sub(1);
         uint256 subPower = 0;
         dac.userCount == 1 ? subPower = INITIAL_POWER_STEP_SIZE : subPower = POWER_STEP_SIZE;
         creator.accPower = creator.accPower.sub(subPower);
@@ -258,6 +259,7 @@ contract DACRecorder is Ownable, IDACRecorder {
 
     function sendRewardToVault(address _user, uint256 _amount) external onlyMining override returns (bool) {
         _safeMetisTransferToVault(_user, _amount);
+        return true;
     }
 
     function setMaxAccPower(uint256 _maxAccPower) external onlyOwner {
