@@ -227,13 +227,6 @@ contract DACRecorder is Ownable, IDACRecorder {
             userWeight[_user] = user.accPower.mul(_amount);
             totalWeight = totalWeight.add(userWeight[_user]);
         }
-        if (creator.accPower > 0) {
-            uint256 creatorAmount = creator.amount;
-            creator.accPower = _calcAccPowerForCreator(_initialDACPower, _DACMemberCount);
-            totalWeight = totalWeight.sub(userWeight[dac.creator]);
-            userWeight[dac.creator] = creator.accPower.mul(creatorAmount);
-            totalWeight = totalWeight.add(userWeight[dac.creator]);
-        }
         return true;
     }
 
@@ -247,13 +240,14 @@ contract DACRecorder is Ownable, IDACRecorder {
             return false;
         }
         UserInfo storage creator = userInfo[dac.creator];
-        dac.userCount = dac.userCount.sub(1);
-        uint256 subPower = 0;
-        dac.userCount == 1 ? subPower = INITIAL_POWER_STEP_SIZE : subPower = POWER_STEP_SIZE;
-        creator.accPower = creator.accPower.sub(subPower);
-        totalWeight = totalWeight.sub(userWeight[dac.creator]);
-        userWeight[dac.creator] = creator.accPower.mul(_amount);
-        totalWeight = totalWeight.add(userWeight[dac.creator]);
+        if (creator.accPower > 0) {
+            uint256 subPower = 0;
+            dac.userCount == 1 ? subPower = INITIAL_POWER_STEP_SIZE : subPower = POWER_STEP_SIZE;
+            creator.accPower = creator.accPower.sub(subPower);
+            totalWeight = totalWeight.sub(userWeight[dac.creator]);
+            userWeight[dac.creator] = creator.accPower.mul(_amount);
+            totalWeight = totalWeight.add(userWeight[dac.creator]);
+        }
         return true;
     }
 

@@ -115,6 +115,44 @@ describe("Mining Contract", function () {
             expect(await this.metis.balanceOf(this.alice.address)).to.equal("3000000000000000000000");
         });
 
+        it("member should deposit and withdraw properly", async function () {
+            await this.mockDAC.connect(this.alice).creatorDeposit(
+                '2000000000000000000000',
+                '1',
+                '80',
+                '1'
+            );
+            expect(await this.metis.balanceOf(this.alice.address)).to.equal("1000000000000000000000");
+            await this.mockDAC.connect(this.bob).memberDeposit(
+                this.alice.address,
+                '1000000000000000000000',
+                '2',
+                '80',
+                '1'
+            );
+            await this.mockDAC.connect(this.bob).memberDeposit(
+                this.alice.address,
+                '1000000000000000000000',
+                '2',
+                '80',
+                '1'
+            );
+            expect(await this.metis.balanceOf(this.bob.address)).to.equal("1000000000000000000000");
+            await this.mining.connect(this.bob).withdraw(
+                this.alice.address,
+                '0',
+                '1000000000000000000000',
+                '1'
+            );
+            await this.mining.connect(this.bob).withdraw(
+                this.alice.address,
+                '0',
+                '1000000000000000000000',
+                '1'
+            );
+            expect(await this.metis.balanceOf(this.bob.address)).to.equal("3000000000000000000000");
+        });
+
         it("creator withdraw all without DAO opening", async function () {
             await this.mockDAC.connect(this.alice).creatorDeposit(
                 '2000000000000000000000',
@@ -348,7 +386,7 @@ describe("Mining Contract", function () {
             await this.mining.connect(this.bob).withdraw(this.alice.address, '0', '0', '1');
             const secondAliceShare = await this.vault.shares(this.alice.address);
             const bobShare = await this.vault.shares(this.bob.address);
-            expect(secondAliceShare.sub(firstAliceShare).add(bobShare)).to.equal('103000000000000000');
+            expect(secondAliceShare.sub(firstAliceShare).add(bobShare)).to.equal('102074074074052000');
         });
         it("should claim Metis properly from Vault", async function () {
             const startTime = (await this.mining.startTimestamp()).toNumber();

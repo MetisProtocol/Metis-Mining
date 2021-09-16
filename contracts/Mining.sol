@@ -97,7 +97,7 @@ contract Mining is Ownable, IMining {
             (,uint256 MetisReward) = calcMetisReward(pool.lastRewardTimestamp, pool.allocPoint);
             share = share.add(MetisReward.mul(1e18).div(totalWeight));
         }
-        (, uint256 accPower) = DACRecorder.checkUserInfo(_user);
+        (, uint256 accPower,) = DACRecorder.checkUserInfo(_user);
         return user.amount.mul(accPower).mul(share).div(1e18).sub(user.rewardDebt);
     }
 
@@ -183,7 +183,7 @@ contract Mining is Ownable, IMining {
             }
             IERC20(pool.token).safeTransferFrom(_user, address(this), _amount);
         }
-        (, uint256 accPower) = DACRecorder.checkUserInfo(_user);
+        (, uint256 accPower,) = DACRecorder.checkUserInfo(_user);
         user.rewardDebt = user.amount.mul(accPower).mul(pool.accMetisPerShare).div(1e18);
         emit Deposit(_creator, _user, _pid, _amount, _DACMemberCount);
         return true;
@@ -243,7 +243,7 @@ contract Mining is Ownable, IMining {
             user.amount = remainingAmount;
             IERC20(pool.token).safeTransfer(address(msg.sender), _amount);
         }
-        (,uint256 accPower) = DACRecorder.checkUserInfo(msg.sender);
+        (,uint256 accPower,) = DACRecorder.checkUserInfo(msg.sender);
         user.rewardDebt = user.amount.mul(accPower).mul(pool.accMetisPerShare).div(1e18);
         emit Withdraw(_creator, msg.sender, _pid, _amount);
         return true;
@@ -269,7 +269,7 @@ contract Mining is Ownable, IMining {
     function _sendPending(uint256 _dacId, uint256 _pid, address _user) internal {
         PoolInfo memory pool = poolInfo[_pid];
         UserInfo memory user = userInfo[_pid][_user];
-        (,uint256 accPower) = DACRecorder.checkUserInfo(_user);
+        (,uint256 accPower,) = DACRecorder.checkUserInfo(_user);
         (IDACRecorder.DACState dacState,, uint256 accMetisPerShare,,) = DACRecorder.checkDACInfo(_dacId);
         uint256 share = dacState == IDACRecorder.DACState.Active ? pool.accMetisPerShare : accMetisPerShare;
         uint256 pending = user.amount.mul(accPower).mul(share).div(1e18).sub(user.rewardDebt);
