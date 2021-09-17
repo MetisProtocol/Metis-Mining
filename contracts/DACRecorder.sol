@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
@@ -284,6 +285,7 @@ contract DACRecorder is Ownable, IDACRecorder {
 
     function setDAOOpen(bool _daoOpen) external onlyOwner {
         DAO_OPEN = _daoOpen;
+        emit DAOOpenChanged(_daoOpen);
     }
 
     function setMiningContract(IMining _mining) external onlyOwner {
@@ -305,4 +307,6 @@ contract DACRecorder is Ownable, IDACRecorder {
         _;
     }
 
+    /* ========== EVENTS ========== */
+    event DAOOpenChanged(bool daoOpen);
 }

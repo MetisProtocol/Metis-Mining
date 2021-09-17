@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity 0.6.12;
 
 import "./common/IERC20.sol";
@@ -74,11 +75,13 @@ contract Vault {
 
     function setGov(address _governance) external onlyGov {
         governance = _governance;
+        emit GovChanged(_governance);
     }
 
     function setLeaveDistributionMin(uint _leaveDistributionMin) external onlyGov {
         require(_leaveDistributionMin >= 0 && _leaveDistributionMin <= 5000, "leaveDistributionMin is out of limitation");
         leaveDistributionMin = _leaveDistributionMin;
+        emit LeavePenaltyChanged(_leaveDistributionMin);
     }
     
     function setDACRecorder(address _DACRecorder) external onlyGov {
@@ -118,4 +121,6 @@ contract Vault {
 
     event Enter(address indexed user, uint256 amount);
     event Leave(address indexed user, uint256 withdrawAmount, uint256 distribution);
+    event GovChanged(address indexed newGov);
+    event LeavePenaltyChanged(uint256 newPenlaty);
 }

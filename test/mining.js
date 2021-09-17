@@ -266,14 +266,14 @@ describe("Mining Contract", function () {
                 '1',
                 '80',
                 '1'
-            )).to.be.revertedWith('Deposit amount is invalid');
+            )).to.be.revertedWith('amount is invalid');
 
             await expect(this.mockDAC.connect(this.alice).creatorDeposit(
                 '2001000000000000000000',
                 '1',
                 '80',
                 '1'
-            )).to.be.revertedWith('Deposit amount is invalid');
+            )).to.be.revertedWith('amount is invalid');
 
             await this.mockDAC.connect(this.alice).creatorDeposit(
                 '2000000000000000000000',
@@ -289,7 +289,7 @@ describe("Mining Contract", function () {
                 '2',
                 '80',
                 '1'
-            )).to.be.revertedWith('Deposit amount is invalid');
+            )).to.be.revertedWith('amount is invalid');
 
             await expect(this.mockDAC.connect(this.bob).memberDeposit(
                 this.alice.address,
@@ -297,7 +297,7 @@ describe("Mining Contract", function () {
                 '2',
                 '80',
                 '1'
-            )).to.be.revertedWith('Deposit amount is invalid');
+            )).to.be.revertedWith('amount is invalid');
 
             await this.mockDAC.connect(this.bob).creatorDeposit(
                 '2000000000000000000000',

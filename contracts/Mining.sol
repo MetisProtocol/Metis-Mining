@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
@@ -147,19 +148,14 @@ contract Mining is Ownable, IMining {
         bool isCreator = _creator == address(0);
         address existedCreator = DACRecorder.creatorOf(_user);
         if (isCreator) {
-            require(DACRecorder.creatorOf(_user) == address(0), "this user is a member of an existing DAC");
+            require(DACRecorder.creatorOf(_user) == address(0), "existed member");
             if (!DACRecorder.isCreator(_user)) {
                 DACRecorder.addCreator(_user);
             } 
-            // else {
-            //     require(dacCreator == _user, "this user is not matched to DAC creator");
-            // }
         } else {
-            // require(DACRecorder.isCreator(_creator), "The creator is not found");
-            // require(!DACRecorder.isCreator(_user), "This user is a creator");
             if (existedCreator != address(0)) {
                 // old member
-                require(_creator == existedCreator, "Wrong creator for this member user");
+                require(_creator == existedCreator, "mismatched creator");
             } else {
                 // new member
                 DACRecorder.setCreatorOf(_creator, _user);
@@ -174,7 +170,7 @@ contract Mining is Ownable, IMining {
         }
         if (_amount > 0 && dacState == IDACRecorder.DACState.Active) {
             uint256 remainingAmount = user.amount.add(_amount);
-            require(remainingAmount >= MIN_DEPOSIT && remainingAmount <= MAX_DEPOSIT, "Deposit amount is invalid");
+            require(remainingAmount >= MIN_DEPOSIT && remainingAmount <= MAX_DEPOSIT, "amount is invalid");
             user.amount = remainingAmount;
             if (isCreator) {
                 DACRecorder.updateCreatorInfo(_user, _dacId, _DACMemberCount, _initialDACPower, user.amount, 0, false);
@@ -197,11 +193,10 @@ contract Mining is Ownable, IMining {
     ) external override returns (bool) {
         bool isCreator = _creator == address(0);
         if (!isCreator) {
-            require(!DACRecorder.isCreator(msg.sender), "This mgs.sender is a creator");
-            require(_creator == DACRecorder.creatorOf(msg.sender), "Wrong creator for this member user");
+            require(!DACRecorder.isCreator(msg.sender), "sender is a creator");
+            require(_creator == DACRecorder.creatorOf(msg.sender), "Wrong creator");
         } else {
-            require(DACRecorder.isCreator(msg.sender), "The msg.sender is not a creator ");
-            require(DACRecorder.creatorOf(msg.sender) == address(0), "this msg.sender is a member of an existing DAC");
+            require(DACRecorder.isCreator(msg.sender), "sender is not a creator ");
         }
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
@@ -299,17 +294,23 @@ contract Mining is Ownable, IMining {
     }
 
     // Update the given pool's Metis allocation point. Can only be called by the owner.
+    // In our case there will be only one pool, this is just in case of multi pool extension
     function set(uint256 _pid, uint256 _allocPoint, bool _withUpdate) external onlyOwner {
         if (_withUpdate) {
             massUpdatePools();
+        } else {
+            updatePool(_pid);
         }
-        totalAllocPoint = totalAllocPoint.sub(poolInfo[_pid].allocPoint).add(_allocPoint);
+        if (poolInfo[_pid].allocPoint != _allocPoint) {
+            totalAllocPoint = totalAllocPoint.sub(poolInfo[_pid].allocPoint).add(_allocPoint);
+        }
         poolInfo[_pid].allocPoint = _allocPoint;
     }
 
     function setMetisPerSecond(uint256 _MetisPerSecond) external onlyOwner {
         massUpdatePools();
         MetisPerSecond = _MetisPerSecond;
+        emit MetisPerSecondChanged(_MetisPerSecond);
     }
 
     function setMetisToken(IMetisToken _metis) external onlyOwner {
@@ -326,14 +327,16 @@ contract Mining is Ownable, IMining {
 
     function setMinDeposit(uint256 _minDeposit) external onlyOwner {
         MIN_DEPOSIT = _minDeposit;
+        emit MinDepositChanged(_minDeposit);
     }
 
     function setMaxDeposit(uint256 _maxDeposit) external onlyOwner {
         MAX_DEPOSIT = _maxDeposit;
+        emit MaxDepositChanged(_maxDeposit);
     }
 
     function setStartTimestamp(uint256 _startTimestamp) external onlyOwner {
-        require(block.number < _startTimestamp, "Cannot change startTimestamp after reward start");
+        require(block.number < _startTimestamp, "Cannot change startTime after starting");
         startTimestamp = _startTimestamp;
         // reinitialize lastRewardTimestamp of all existing pools (if any)
         uint256 length = poolInfo.length;
@@ -341,16 +344,18 @@ contract Mining is Ownable, IMining {
             PoolInfo storage pool = poolInfo[pid];
             pool.lastRewardTimestamp = _startTimestamp;
         }
+        emit StartTimestampChanged(_startTimestamp);
     }
 
     function setTeamAddr(address _teamAddr) external onlyOwner {
         teamAddr = _teamAddr;
+        emit TeamAddrChanged(_teamAddr);
     }
 
     /* ========== MODIFIERS ========== */
 
     modifier onlyDAC() {
-        require(msg.sender == address(DAC), "only DAC can call this function");
+        require(msg.sender == address(DAC), "not DAC");
         _;
     }
 
@@ -359,4 +364,9 @@ contract Mining is Ownable, IMining {
     event Deposit(address indexed creator, address indexed user, uint256 pid, uint256 amount, uint256 DACMemberCount);
     event Withdraw(address indexed creator, address indexed user, uint256 pid, uint256 amount);
     event Mint(uint256 amount);
+    event TeamAddrChanged(address indexed team);
+    event StartTimestampChanged(uint256 newStartTime);
+    event MinDepositChanged(uint256 newMin);
+    event MaxDepositChanged(uint256 newMax);
+    event MetisPerSecondChanged(uint256 newPerSecond);
 }
