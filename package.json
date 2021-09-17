@@ -7,6 +7,7 @@
     "test": "hardhat test",
     "compile": "hardhat compile",
     "mock-deploy": "hardhat run scripts/mock-deploy.js --network metis",
+    "mock-setting": "hardhat run scripts/mock-settings.js --network metis",
     "deploy": "hardhat run scripts/deploy.js --network metis"
   },
   "license": "MIT",
