@@ -216,7 +216,7 @@ contract Mining is Ownable, IMining {
                 if (remainingAmount == 0) {
                     DACRecorder.updateCreatorInfo(msg.sender, _dacId, 0, 0, remainingAmount, pool.accMetisPerShare, true);
                     DACRecorder.removeCreator(msg.sender);
-                    DAC.dismissDAC(msg.sender);
+                    DAC.dismissDAC(_dacId, msg.sender);
                 } else {
                     DACRecorder.updateCreatorInfo(msg.sender, _dacId, userCount, initialDACPower, remainingAmount, 0, false);
                 }
@@ -230,7 +230,7 @@ contract Mining is Ownable, IMining {
                     DACRecorder.updateMemberInfo(msg.sender, _dacId, 0, 0, 0, true, false);
                     DACRecorder.subCreatorPower(_dacId, userInfo[_pid][_creator].amount);
                     DACRecorder.delMember(_dacId, msg.sender);
-                    DAC.memberLeave(_creator, msg.sender);
+                    DAC.memberLeaveDAC(_dacId, msg.sender);
                 } else {
                     DACRecorder.updateMemberInfo(msg.sender, _dacId, userCount, initialDACPower, remainingAmount, false, false);
                 }
@@ -253,7 +253,7 @@ contract Mining is Ownable, IMining {
         _sendPending(_dacId, _pid, _creator);
         DACRecorder.updateCreatorInfo(_creator, _dacId, 0, 0, creator.amount, pool.accMetisPerShare, true);
         DACRecorder.removeCreator(_creator);
-        DAC.dismissDAC(msg.sender);
+        DAC.dismissDAC(_dacId, msg.sender);
         IERC20(pool.token).safeTransfer(_creator, creator.amount);
         creator.amount = 0;
         return true;

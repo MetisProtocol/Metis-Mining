@@ -6,8 +6,8 @@ import "../interfaces/IMetisToken.sol";
 import "../common/Ownable.sol";
 
 contract MockDAC is IDAC, Ownable {
-    event MemberLeave(address indexed creator, address indexed member);
-    event DismissDAC(address indexed creator);
+    event MemberLeave(uint256 dacId, address indexed member);
+    event DismissDAC(uint256 dacId, address indexed creator);
 
     IMining public miningContract;
     IMetisToken public metis;
@@ -18,8 +18,8 @@ contract MockDAC is IDAC, Ownable {
         metis = _metis;
     }
 
-    function memberLeave(address _creator, address _member) external override returns (bool) {
-        emit MemberLeave(_creator, _member);
+    function memberLeaveDAC(uint256 dacId, address member) external override returns (bool) {
+        emit MemberLeave(dacId, member);
         return true;
     }
 
@@ -57,14 +57,15 @@ contract MockDAC is IDAC, Ownable {
         );
     }
 
-    function dismissDAC(address _creator) public override returns (bool) {
-        emit DismissDAC(_creator);
+    function dismissDAC(uint256 dacId, address creator) public override returns (bool) {
+        emit DismissDAC(dacId, creator);
+        return true;
     }
 
     function DAODismiss(uint256 _dacId) public returns (bool) {
         require(DAO_OPEN, "DAO is not opened");
         miningContract.dismissDAC(_dacId, miningContract.tokenToPid(address(metis)), msg.sender);
-        emit DismissDAC(msg.sender);
+        emit DismissDAC(_dacId, msg.sender);
     }
 
     function setDAOOpen(bool _daoOpen) external onlyOwner {
