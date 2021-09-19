@@ -336,7 +336,7 @@ contract Mining is Ownable, IMining {
     }
 
     function setStartTimestamp(uint256 _startTimestamp) external onlyOwner {
-        require(block.number < _startTimestamp, "Cannot change startTime after starting");
+        require(block.timestamp < _startTimestamp, "Cannot change startTime after starting");
         startTimestamp = _startTimestamp;
         // reinitialize lastRewardTimestamp of all existing pools (if any)
         uint256 length = poolInfo.length;
