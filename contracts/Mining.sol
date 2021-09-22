@@ -127,10 +127,10 @@ contract Mining is Ownable, IMining {
         if (teamAddr != address(0)) {
             distributor.distribute(teamAddr, MetisReward.div(9));
         }
-        distributor.distribute(address(DACRecorder), MetisReward);
-        emit Mint(MetisReward);
+        uint256 realReward = distributor.distribute(address(DACRecorder), MetisReward);
+        emit Mint(realReward);
         pool.accMetisPerShare = pool.accMetisPerShare.add(
-            MetisReward.mul(1e18).div(totalWeight)
+            realReward.mul(1e18).div(totalWeight)
         );
         pool.lastRewardTimestamp = block.timestamp;
     }
@@ -181,7 +181,7 @@ contract Mining is Ownable, IMining {
         }
         (, uint256 accPower,) = DACRecorder.checkUserInfo(_user);
         user.rewardDebt = user.amount.mul(accPower).mul(pool.accMetisPerShare).div(1e18);
-        emit Deposit(_creator, _user, _pid, _amount, _DACMemberCount);
+        emit Deposit(_creator, _user, _pid, _amount, _DACMemberCount, _dacId);
         return true;
     }
 
@@ -240,7 +240,7 @@ contract Mining is Ownable, IMining {
         }
         (,uint256 accPower,) = DACRecorder.checkUserInfo(msg.sender);
         user.rewardDebt = user.amount.mul(accPower).mul(pool.accMetisPerShare).div(1e18);
-        emit Withdraw(_creator, msg.sender, _pid, _amount);
+        emit Withdraw(_creator, msg.sender, _pid, _amount, _dacId);
         return true;
     }
 
@@ -361,8 +361,8 @@ contract Mining is Ownable, IMining {
 
     /* ========== EVENTS ========== */
 
-    event Deposit(address indexed creator, address indexed user, uint256 pid, uint256 amount, uint256 DACMemberCount);
-    event Withdraw(address indexed creator, address indexed user, uint256 pid, uint256 amount);
+    event Deposit(address indexed creator, address indexed user, uint256 pid, uint256 amount, uint256 DACMemberCount, uint256 dacId);
+    event Withdraw(address indexed creator, address indexed user, uint256 pid, uint256 amount, uint256 dacId);
     event Mint(uint256 amount);
     event TeamAddrChanged(address indexed team);
     event StartTimestampChanged(uint256 newStartTime);

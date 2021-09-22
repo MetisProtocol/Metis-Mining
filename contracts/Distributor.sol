@@ -16,14 +16,14 @@ contract Distributor is Ownable {
         metisToken = _metisToken;
     }
 
-    function distribute(address _to, uint256 _amount) external onlyMining returns (bool) {
+    function distribute(address _to, uint256 _amount) external onlyMining returns (uint256) {
         uint256 realAmount = _amount;
         if (_amount > metisToken.balanceOf(address(this))) {
             realAmount = metisToken.balanceOf(address(this));
         }
         metisToken.safeTransfer(_to, realAmount);
         emit Distribute(_to, realAmount);
-        return true;
+        return realAmount;
     }
 
     // Allow owner to rescue tokens
