@@ -12,7 +12,7 @@ interface IMining {
         uint256 _dacId
     ) external returns (bool);
 
-    function withdraw(address _creator, uint256 _pid, uint256 _amount, uint256 _dacId) external returns (bool);
+    function withdraw(address _creator, uint256 _pid, uint256 _amount) external returns (bool);
 
     function dismissDAC(uint256 _dacId, uint256 _pid, address _creator) external returns (bool);
 

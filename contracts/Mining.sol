@@ -188,9 +188,9 @@ contract Mining is Ownable, IMining {
     function withdraw(
         address _creator, 
         uint256 _pid, 
-        uint256 _amount,
-        uint256 _dacId
+        uint256 _amount
     ) external override returns (bool) {
+        uint256 _dacId = DAC.userToDAC(msg.sender);
         bool isCreator = _creator == address(0);
         if (!isCreator) {
             require(!DACRecorder.isCreator(msg.sender), "sender is a creator");

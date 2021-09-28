@@ -13,6 +13,8 @@ contract MockDAC is IDAC, Ownable {
     IMetisToken public metis;
     bool public DAO_OPEN = false;
 
+    mapping(address => uint256) public override userToDAC;
+
     constructor(IMining _miningContract, IMetisToken _metis) public {
         miningContract = _miningContract;
         metis = _metis;
@@ -29,6 +31,7 @@ contract MockDAC is IDAC, Ownable {
             metis.allowance(msg.sender, address(miningContract)) >= _amount, 
             "Not enough allowance for mining contract"
         );
+        userToDAC[msg.sender] = _dacId;
         miningContract.deposit(
             address(0), 
             msg.sender, 
@@ -46,6 +49,7 @@ contract MockDAC is IDAC, Ownable {
             metis.allowance(msg.sender, address(miningContract)) >= _amount, 
             "Not enough allowance for mining contract"
         );
+        userToDAC[msg.sender] = _dacId;
         miningContract.deposit(
             _creator, 
             msg.sender, 
@@ -75,4 +79,5 @@ contract MockDAC is IDAC, Ownable {
     function setMiningContract(IMining _miningContract) external onlyOwner {
         miningContract = _miningContract;
     }
+
 }
