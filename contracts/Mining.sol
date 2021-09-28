@@ -87,9 +87,10 @@ contract Mining is Ownable, IMining {
     }
 
     // View function to see pending Metis on frontend.
-    function pendingMetis(uint256 _dacId, uint256 _pid, address _user) external view returns (uint256) {
+    function pendingMetis(uint256 _pid, address _user) external view returns (uint256) {
         PoolInfo memory pool = poolInfo[_pid];
         UserInfo memory user = userInfo[_pid][_user];
+        uint256 _dacId = DAC.userToDAC(_user);
         (IDACRecorder.DACState dacState,, uint256 accMetisPerShare,,) = DACRecorder.checkDACInfo(_dacId);
         bool isActiveDAC = dacState == IDACRecorder.DACState.Active;
         uint256 share = isActiveDAC ? pool.accMetisPerShare : accMetisPerShare;
