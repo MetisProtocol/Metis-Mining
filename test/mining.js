@@ -201,7 +201,7 @@ describe("Mining Contract", function () {
             // expect(dacInfo[0]).to.equal(1);
             expect(await this.metis.balanceOf(this.bob.address)).to.equal("1000000000000000000000");
             await TimeHelper.advanceTimeAndBlock(1000);
-            const pendingBobRewards = await this.mining.pendingMetis(1, 0, this.bob.address);
+            const pendingBobRewards = await this.mining.pendingMetis(0, this.bob.address);
             expect(pendingBobRewards).to.equal(0);
             // const carolWeight = await this.DACRecorder.userWeight(this.carol.address);
             // const danielWeight = await this.DACRecorder.userWeight(this.daniel.address);
