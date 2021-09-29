@@ -40,7 +40,7 @@ async function main() {
 
     const addresses = {
         MockMetis: MockMetis.address,
-        DAC: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
+        DAC: '0x509058f8B9A49D399B64554b21E7018c3641a0cC',
         DACRecorder: DACRecorder.address,
         Mining: Mining.address,
         Vault: Vault.address,

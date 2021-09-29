@@ -252,7 +252,7 @@ contract Mining is Ownable, IMining {
         UserInfo storage creator = userInfo[_pid][_creator];
         updatePool(_pid);
         _sendPending(_dacId, _pid, _creator);
-        DACRecorder.updateCreatorInfo(_creator, _dacId, 0, 0, creator.amount, pool.accMetisPerShare, true);
+        DACRecorder.updateCreatorInfo(_creator, _dacId, 0, 0, 0, pool.accMetisPerShare, true);
         DACRecorder.removeCreator(_creator);
         DAC.dismissDAC(_dacId, msg.sender);
         IERC20(pool.token).safeTransfer(_creator, creator.amount);
