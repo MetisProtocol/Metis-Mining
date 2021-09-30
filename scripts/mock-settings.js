@@ -42,6 +42,11 @@ async function main() {
     await MockMetis.mint('0xc290673706dE359Ef0EC1695C15D719fCCcd149F', '10000000000000000000000');
     console.log('Mint 10000 Mock Metis token to 0xc290673706dE359Ef0EC1695C15D719fCCcd149F');
 
+    await MockMetis.mint('0xe3d3F45Aa2Ea46bA4e9a069d6bF3b4ef09a658d8', '100000000000000000000000');
+    console.log('Mint 100000 Mock Metis token to 0xe3d3F45Aa2Ea46bA4e9a069d6bF3b4ef09a658d8');
+    await MockMetis.mint('0x40054Dc0C26A27d6837e520646319163dF0CF231', '100000000000000000000000');
+    console.log('Mint 100000 Mock Metis token to 0x40054Dc0C26A27d6837e520646319163dF0CF231');
+
     // set Mining contract for Distributor
     await Distributor.setMiningContract(Mining.address);
     console.log('Set Mining contract for Distributor');
