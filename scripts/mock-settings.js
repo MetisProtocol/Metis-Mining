@@ -19,7 +19,7 @@ async function main() {
     const Vault = VaultFactory.attach(addresses.Vault);
     const DACRecorder = DACRecorderFactory.attach(addresses.DACRecorder);
     const Mining = MiningFactory.attach(addresses.Mining);
-    const DAC = MiningFactory.attach(addresses.DAC);
+    const DAC = DACFactory.attach(addresses.DAC);
 
     await MockMetis.mint(Distributor.address, '100000000000000000000000');
     console.log('Mint 100000 Mock Metis token to distributor');
