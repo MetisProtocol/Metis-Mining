@@ -22,8 +22,6 @@ interface IDACRecorder {
     function updateCreatorInfo(
         address _user,
         uint256 _dacId,
-        uint256 _DACMemberCount, 
-        uint256 _initialDACPower,
         uint256 _amount,
         uint256 _accMetisPerShare,
         bool _withdrawAll
@@ -31,13 +29,10 @@ interface IDACRecorder {
     function updateMemberInfo(
         address _user,
         uint256 _dacId,
-        uint256 _DACMemberCount, 
-        uint256 _initialDACPower,
         uint256 _amount,
         bool _withdrawAll,
         bool _isDeposit
     ) external returns (bool);
-    function subCreatorPower(uint256 _dacId, uint256 _amount) external returns (bool);
     function creatorOf(address _member) external returns (address);
     function setCreatorOf(address _creator, address _user) external;
     function totalWeight() external view returns (uint256);

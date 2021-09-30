@@ -11,6 +11,7 @@ async function main() {
     const VaultFactory = await hre.ethers.getContractFactory('Vault');
     const MiningFactory = await hre.ethers.getContractFactory('Mining');
     const DACRecorderFactory = await hre.ethers.getContractFactory('DACRecorder');
+    const DACFactory = await hre.ethers.getContractFactory('DAC');
     // (10000000 * 1e18)
     const MockMetis = await MockMetisTokenFactory.deploy([signer], '10000000000000000000000000');
     await MockMetis.deployed();
@@ -38,9 +39,13 @@ async function main() {
     await Mining.deployed();
     console.log('Mining deployed to: ', Mining.address);
 
+    const DAC = await DACFactory.deploy(MockMetis.address, Mining.address);
+    await DAC.deployed();
+    console.log('DAC deployed to: ', DAC.address);
+
     const addresses = {
         MockMetis: MockMetis.address,
-        DAC: '0x509058f8B9A49D399B64554b21E7018c3641a0cC',
+        DAC: DAC.address,
         DACRecorder: DACRecorder.address,
         Mining: Mining.address,
         Vault: Vault.address,

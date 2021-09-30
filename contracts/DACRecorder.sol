@@ -9,6 +9,7 @@ import "./interfaces/IMining.sol";
 import "./interfaces/IMetisToken.sol";
 import "./interfaces/IVault.sol";
 import "./interfaces/IDACRecorder.sol";
+import "./interfaces/IDAC.sol";
 
 contract DACRecorder is Ownable, IDACRecorder {
     using SafeMath for uint256;
@@ -36,6 +37,8 @@ contract DACRecorder is Ownable, IDACRecorder {
     IVault public vault;
     // Mining Contract
     IMining public mining;
+    // DAC contract
+    IDAC public metisDAC;
     // Addresses of creators
     EnumerableSet.AddressSet private creators;
     // DAC id mapping to DAC info
@@ -148,14 +151,14 @@ contract DACRecorder is Ownable, IDACRecorder {
     function updateCreatorInfo(
         address _user,
         uint256 _dacId,
-        uint256 _DACMemberCount, 
-        uint256 _initialDACPower,
         uint256 _amount,
         uint256 _accMetisPerShare,
         bool _withdrawAll
     ) external onlyMining override returns (bool) {
         DAC storage dac = dacInfo[_dacId];
         UserInfo storage user = userInfo[_user];
+        uint256 _initialDACPower = metisDAC.queryInitialPower(dac.creator);
+        uint256 _DACMemberCount = metisDAC.queryMemberLength(_dacId);
 
         require(dac.state == DACState.Active, "This DAC is inactive");
 
@@ -193,8 +196,6 @@ contract DACRecorder is Ownable, IDACRecorder {
     function updateMemberInfo(
         address _user,
         uint256 _dacId,
-        uint256 _DACMemberCount, 
-        uint256 _initialDACPower,
         uint256 _amount,
         bool _withdrawAll,
         bool _isDeposit
@@ -202,6 +203,8 @@ contract DACRecorder is Ownable, IDACRecorder {
         DAC storage dac = dacInfo[_dacId];
         UserInfo storage user = userInfo[_user];
         UserInfo storage creator = userInfo[dac.creator];
+        uint256 _initialDACPower = metisDAC.queryInitialPower(dac.creator);
+        uint256 _DACMemberCount = metisDAC.queryMemberLength(_dacId);
 
         require(dac.members.contains(_user), "This user is not included in this DAC");
 
@@ -214,6 +217,7 @@ contract DACRecorder is Ownable, IDACRecorder {
             userWeight[_user] = 0;
             creatorOf[_user] = address(0);
             dac.userCount = dac.userCount.sub(1);
+            _subCreatorPower(_dacId);
         } else {
             if (_isDeposit) {
                 require(dac.state == DACState.Active, "This DAC is inactive");
@@ -230,7 +234,7 @@ contract DACRecorder is Ownable, IDACRecorder {
             if (creator.accPower > 0) {
                 creator.accPower = _calcAccPowerForCreator(_initialDACPower, _DACMemberCount);
                 totalWeight = totalWeight.sub(userWeight[dac.creator]);
-                userWeight[dac.creator] = creator.accPower.mul(_amount);
+                userWeight[dac.creator] = creator.accPower.mul(creator.amount);
                 totalWeight = totalWeight.add(userWeight[dac.creator]);
             }
         }
@@ -241,7 +245,7 @@ contract DACRecorder is Ownable, IDACRecorder {
         creatorOf[_user] = _creator;
     }
 
-    function subCreatorPower(uint256 _dacId, uint256 _amount) external onlyMining override returns (bool) {
+    function _subCreatorPower(uint256 _dacId) internal returns (bool) {
         DAC storage dac = dacInfo[_dacId];
         if (dac.state == DACState.Inactive) {
             return false;
@@ -252,7 +256,7 @@ contract DACRecorder is Ownable, IDACRecorder {
             dac.userCount == 1 ? subPower = INITIAL_POWER_STEP_SIZE : subPower = POWER_STEP_SIZE;
             creator.accPower = creator.accPower.sub(subPower);
             totalWeight = totalWeight.sub(userWeight[dac.creator]);
-            userWeight[dac.creator] = creator.accPower.mul(_amount);
+            userWeight[dac.creator] = creator.accPower.mul(creator.amount);
             totalWeight = totalWeight.add(userWeight[dac.creator]);
         }
         return true;
@@ -294,6 +298,10 @@ contract DACRecorder is Ownable, IDACRecorder {
 
     function setMetisToken(IMetisToken _metis) external onlyOwner {
         Metis = _metis;
+    }
+
+    function setMetisDAC(IDAC _metisDAC) external onlyOwner {
+        metisDAC = _metisDAC;
     }
 
     function setVault(IVault _vault) external onlyOwner {

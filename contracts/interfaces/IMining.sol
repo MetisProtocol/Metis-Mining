@@ -7,8 +7,6 @@ interface IMining {
         address _user, 
         uint256 _pid, 
         uint256 _amount,
-        uint256 _DACMemberCount,
-        uint256 _initialDACPower,
         uint256 _dacId
     ) external returns (bool);
 
