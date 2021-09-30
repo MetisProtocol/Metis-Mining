@@ -36,6 +36,7 @@ interface IDACRecorder {
     function creatorOf(address _member) external returns (address);
     function setCreatorOf(address _creator, address _user) external;
     function totalWeight() external view returns (uint256);
+    function userWeight(address _user) external view returns (uint256);
     function MIN_MEMBER_COUNT() external view returns (uint256);
     function DAO_OPEN() external view returns (bool);
     function stakedMetis() external view returns (uint256);

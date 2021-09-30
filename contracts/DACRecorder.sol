@@ -47,7 +47,7 @@ contract DACRecorder is Ownable, IDACRecorder {
     mapping(address => UserInfo) private userInfo;
     // Return creator of the specific member address
     mapping(address => address) public override creatorOf;
-    mapping(address => uint256) public userWeight;
+    mapping(address => uint256) public override userWeight;
 
     uint256 public override totalWeight;
     uint256 public MAX_ACC_POWER = 500;
