@@ -92,13 +92,12 @@ contract Mining is Ownable, IMining {
         UserInfo memory user = userInfo[_pid][_user];
         uint256 _dacId = DAC.userToDAC(_user);
         (IDACRecorder.DACState dacState,, uint256 accMetisPerShare,,) = DACRecorder.checkDACInfo(_dacId);
-        bool isActiveDAC = dacState == IDACRecorder.DACState.Active;
         uint256 share = pool.accMetisPerShare;
-        if (!isActiveDAC) {
+        if (dacState == IDACRecorder.DACState.Inactive) {
             share = accMetisPerShare;
         }
         uint256 totalWeight = DACRecorder.totalWeight();
-        if (isActiveDAC && block.timestamp > pool.lastRewardTimestamp && totalWeight != 0) {
+        if (dacState == IDACRecorder.DACState.Active && block.timestamp > pool.lastRewardTimestamp && totalWeight != 0) {
             (,uint256 MetisReward) = calcMetisReward(pool.lastRewardTimestamp, pool.allocPoint);
             share = share.add(MetisReward.mul(1e18).div(totalWeight));
         }

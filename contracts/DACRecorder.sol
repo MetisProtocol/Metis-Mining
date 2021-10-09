@@ -158,7 +158,7 @@ contract DACRecorder is Ownable, IDACRecorder {
         DAC storage dac = dacInfo[_dacId];
         UserInfo storage user = userInfo[_user];
         uint256 _initialDACPower = metisDAC.queryInitialPower(dac.creator);
-        uint256 _DACMemberCount = metisDAC.queryMemberLength(_dacId);
+        uint256 _DACMemberCount = metisDAC.getDACMemberCount(_dacId);
 
         require(dac.state == DACState.Active, "This DAC is inactive");
 
@@ -204,7 +204,7 @@ contract DACRecorder is Ownable, IDACRecorder {
         UserInfo storage user = userInfo[_user];
         UserInfo storage creator = userInfo[dac.creator];
         uint256 _initialDACPower = metisDAC.queryInitialPower(dac.creator);
-        uint256 _DACMemberCount = metisDAC.queryMemberLength(_dacId);
+        uint256 _DACMemberCount = metisDAC.getDACMemberCount(_dacId);
 
         require(dac.members.contains(_user), "This user is not included in this DAC");
 

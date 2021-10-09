@@ -6,5 +6,5 @@ interface IDAC {
     function dismissDAC(uint256 dacId, address creator) external returns(bool);
     function userToDAC(address user) external view returns(uint256);
     function queryInitialPower(address user) external view returns(uint256 initialPower);
-    function queryMemberLength(uint256 _dacId) external view returns(uint256);
+    function getDACMemberCount(uint256 dacId) external view returns(uint256);
 }

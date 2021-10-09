@@ -171,6 +171,10 @@ describe("Mining Contract", function () {
             expect(await this.metis.balanceOf(this.alice.address)).to.equal("1000000000000000000000");
             const aliceDACId = await this.dac.userToDAC(this.alice.address);
             const aliceInviteCode = await this.dac.DACToInvitationCode(aliceDACId);
+            console.log(aliceDACId);
+            console.log(aliceInviteCode);
+            let dacInfo = await this.DACRecorder.checkDACInfo(aliceDACId);
+            console.log('======', dacInfo);
             await this.dac.connect(this.bob).joinDAC(
                 aliceDACId,
                 '2000000000000000000000',
@@ -195,9 +199,6 @@ describe("Mining Contract", function () {
                 carolInviteCode
             );
             expect(await this.metis.balanceOf(this.daniel.address)).to.equal("1000000000000000000000");
-
-            // const dacInfo = await this.DACRecorder.checkDACInfo(1);
-            // console.log('dac info: ', dacInfo);
             
             await this.mining.connect(this.alice).withdraw(
                 ADDRESS_ZERO,
@@ -205,23 +206,11 @@ describe("Mining Contract", function () {
                 '2000000000000000000000',
             );
             expect(await this.metis.balanceOf(this.alice.address)).to.equal("3000000000000000000000");
-            // const dacInfo = await this.DACRecorder.checkDACInfo(1);
-            // console.log('dac info: ', dacInfo);
-            // expect(dacInfo[0]).to.equal(1);
             expect(await this.metis.balanceOf(this.bob.address)).to.equal("1000000000000000000000");
             await TimeHelper.advanceTimeAndBlock(1000);
             const pendingBobRewards = await this.mining.pendingMetis(0, this.bob.address);
             expect(pendingBobRewards).to.equal(0);
-            // const carolWeight = await this.DACRecorder.userWeight(this.carol.address);
-            // const danielWeight = await this.DACRecorder.userWeight(this.daniel.address);
-            // const totalWeight = await this.DACRecorder.totalWeight();
-            // console.log('carol weight: ', carolWeight.toString());
-            // console.log('daniel weight: ', danielWeight.toString());
-            // console.log('total weight: ', totalWeight.toString());
-            // const pendingCarolRewards = await this.mining.pendingMetis(2, 0, this.carol.address);
-            // const pendingDanielRewards = await this.mining.pendingMetis(2, 0, this.daniel.address);
-            // console.log('pendingCarolRewards: ', pendingCarolRewards.toString());
-            // console.log('pendingDanielRewards: ', pendingDanielRewards.toString());
+
             await this.mining.connect(this.bob).withdraw(
                 this.alice.address,
                 '0',
@@ -262,7 +251,15 @@ describe("Mining Contract", function () {
             );
             expect(await this.metis.balanceOf(this.alice.address)).to.equal("1000000000000000000000");
             const aliceDACId = await this.dac.userToDAC(this.alice.address);
+            let dacInfo = await this.DACRecorder.checkDACInfo(aliceDACId);
+            let dacInfo2 = await this.dac.getDACMemberCount(aliceDACId);
+            console.log('first dac-r info', dacInfo.userCount.toString());
+            console.log('first dac info', dacInfo2.toString())
             await this.dac.connect(this.alice).DAODismissDAC(aliceDACId);
+            dacInfo = await this.DACRecorder.checkDACInfo(aliceDACId);
+            dacInfo2 = await this.dac.getDACMemberCount(aliceDACId);
+            console.log('second dac-r info', dacInfo.userCount.toString());
+            console.log('second dac info', dacInfo2.toString())
             expect(await this.metis.balanceOf(this.alice.address)).to.equal("3000000000000000000000");
         });
 

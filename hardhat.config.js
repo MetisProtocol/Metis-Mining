@@ -33,14 +33,22 @@ module.exports = {
   networks: {
     hardhat: {
     },
+    // metis: {
+    //   url: 'https://rocketfuel.metis.io/?owner=435',
+    //   accounts: {
+    //     mnemonic,
+    //   },
+    //   gasPrice: 15000000,
+    //   ovm: true
+    // },
     metis: {
-      url: 'https://rocketfuel.metis.io/?owner=435',
+      url: 'https://dragonfire.metis.io/?owner=488',
       accounts: {
         mnemonic,
       },
       gasPrice: 15000000,
       ovm: true
-    },
+    }
   },
   ovm: {
     solcVersion: '0.6.12', // Currently, we only support 0.5.16, 0.6.12, and 0.7.6 of the Solidity compiler           

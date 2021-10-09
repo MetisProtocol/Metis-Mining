@@ -937,9 +937,9 @@ contract DAC is IDAC, AccessControl, Ownable{
         require(!_userExist(_msgSender()), "user exist");
         require(!(amount < MIN_DEPOSIT || amount > MAX_DEPOSIT), "amount not allowed");
         require(Metis.allowance(_msgSender(), address(MiningContract)) >= amount, "Not enough allowance for mining contract");   // check balance
-        _deposit(address(0), _msgSender(), amount, pool.length);    // deposit
         // create new DAC
         _createNewDAC(_msgSender(), name, introduction, category, url, photo, amount);
+        _deposit(address(0), _msgSender(), amount, pool.length - 1);    // deposit
         return true;
     }
 
@@ -950,10 +950,10 @@ contract DAC is IDAC, AccessControl, Ownable{
         require(!_userExist(_msgSender()), "user exist");
         require(Metis.allowance(_msgSender(), address(MiningContract)) >= amount, "Not enough allowance for mining contract");
         DACInfo memory dac = pool[dacId];
-        _deposit(dac.creator, _msgSender(), amount, dacId);
         // persistence
         relations[dacId].add(_msgSender());
         userToDAC[_msgSender()] = dacId;
+        _deposit(dac.creator, _msgSender(), amount, dacId);
         emit JoinedDAC(dacId, _msgSender(), invitationCode);
         return true;
     }
@@ -974,6 +974,7 @@ contract DAC is IDAC, AccessControl, Ownable{
         DACInfo storage dac = pool[dacId];
         dac.state = DACState.Dismissed;
         userToDAC[msg.sender] = 0;
+        relations[dacId].remove(msg.sender);
         MiningContract.dismissDAC(dacId, 0, msg.sender);
         emit DismissedDAC(msg.sender, dacId);
         return true;
@@ -987,6 +988,7 @@ contract DAC is IDAC, AccessControl, Ownable{
         DACInfo storage dac = pool[dacId];
         dac.state = DACState.Dismissed;
         userToDAC[creator] = 0;
+        relations[dacId].remove(creator);
         // dac.dismissedTime = block.timestamp;   // error stack too deep
         emit DismissedDAC(creator, dacId);
         return true;
@@ -1088,10 +1090,6 @@ contract DAC is IDAC, AccessControl, Ownable{
         }else{
             initialPower = 80;
         }
-    }
-
-    function queryMemberLength(uint256 _dacId) public view returns(uint256) {
-        return relations[_dacId].length() + 1;
     }
 
     /**
