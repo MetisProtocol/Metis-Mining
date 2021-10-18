@@ -1136,7 +1136,7 @@ contract DAC is IDAC, AccessControl, Ownable{
     /**
     * @dev if user exist return `true` else `false`
     */
-    function _userExist(address user) internal view returns(bool){
+    function _userExist(address user) public view returns(bool){
         // user not in any DAC || user already left DAC
         if (userToDAC[user] == 0) {
             return false;

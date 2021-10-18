@@ -251,6 +251,7 @@ describe("Mining Contract", function () {
             );
             expect(await this.metis.balanceOf(this.alice.address)).to.equal("1000000000000000000000");
             const aliceDACId = await this.dac.userToDAC(this.alice.address);
+            console.log('aliceDACId', aliceDACId);
             let dacInfo = await this.DACRecorder.checkDACInfo(aliceDACId);
             let dacInfo2 = await this.dac.getDACMemberCount(aliceDACId);
             console.log('first dac-r info', dacInfo.userCount.toString());
