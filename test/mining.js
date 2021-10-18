@@ -356,14 +356,14 @@ describe("Mining Contract", function () {
 
             // Bob deposit 1000 Metis at second time
             await this.dac.connect(this.bob).createDAC(
-                'alice',
+                'bob',
                 'introduction',
                 'category',
                 'url',
                 'photo',
                 '1000000000000000000000'
             )
-            expect(await this.metis.balanceOf(this.alice.address)).to.equal("2000000000000000000000");
+            expect(await this.metis.balanceOf(this.bob.address)).to.equal("2000000000000000000000");
 
             // advance 100 to block.timestamp and one block
             await TimeHelper.advanceTimeAndBlock(100);
@@ -375,6 +375,24 @@ describe("Mining Contract", function () {
             await this.mining.connect(this.bob).withdraw(ADDRESS_ZERO, '0', '0');
             const bobReward = bobPending.add(1e15 * 0.5);
             expect(await this.vault.shares(this.bob.address)).to.equal(bobReward.toString());
+
+            const aliceDACId = await this.dac.userToDAC(this.alice.address);
+            await this.dac.connect(this.alice).increaseDeposit(
+                aliceDACId,
+                ADDRESS_ZERO,
+                '1000000000000000000000'
+            );
+            expect(await this.metis.balanceOf(this.alice.address)).to.equal("1000000000000000000000");
+
+            await this.dac.connect(this.carol).createDAC(
+                'carol',
+                'introduction',
+                'category',
+                'url',
+                'photo',
+                '1000000000000000000000'
+            )
+            expect(await this.metis.balanceOf(this.carol.address)).to.equal("2000000000000000000000");
         });
 
         it("should distribute Metis properly for different cretors and members", async function () {
