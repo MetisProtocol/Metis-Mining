@@ -41,6 +41,7 @@ contract Mining is Ownable, IMining {
     IDistributor public distributor;
     // Dev address.
     address public teamAddr;
+    address private setter;
     // Info of each pool.
     PoolInfo[] public poolInfo;
     // mapping of token to pool id
@@ -70,6 +71,7 @@ contract Mining is Ownable, IMining {
         distributor = _distributor;
         MetisPerSecond = _MetisPerSecond;
         startTimestamp = _startTimestamp;
+        setter = msg.sender;
     }
 
     /* ========== VIEW FUNCTIONS ========== */
@@ -289,7 +291,7 @@ contract Mining is Ownable, IMining {
     /* ========== RESTRICTED FUNCTIONS ========== */
 
     // Add a new staked token to the pool. Can only be called by the owner.
-    function add(uint256 _allocPoint, address _token, bool _withUpdate) external onlyOwner {
+    function add(uint256 _allocPoint, address _token, bool _withUpdate) external onlySetter {
         if (_withUpdate) {
             massUpdatePools();
         }
@@ -308,7 +310,7 @@ contract Mining is Ownable, IMining {
 
     // Update the given pool's Metis allocation point. Can only be called by the owner.
     // In our case there will be only one pool, this is just in case of multi pool extension
-    function set(uint256 _pid, uint256 _allocPoint, bool _withUpdate) external onlyOwner {
+    function set(uint256 _pid, uint256 _allocPoint, bool _withUpdate) external onlySetter {
         if (_withUpdate) {
             massUpdatePools();
         } else {
@@ -320,7 +322,7 @@ contract Mining is Ownable, IMining {
         poolInfo[_pid].allocPoint = _allocPoint;
     }
 
-    function setMetisPerSecond(uint256 _MetisPerSecond) external onlyOwner {
+    function setMetisPerSecond(uint256 _MetisPerSecond) external onlySetter {
         massUpdatePools();
         MetisPerSecond = _MetisPerSecond;
         emit MetisPerSecondChanged(_MetisPerSecond);
@@ -338,17 +340,21 @@ contract Mining is Ownable, IMining {
         DACRecorder = _DACRecorder;
     }
 
-    function setMinDeposit(uint256 _minDeposit) external onlyOwner {
+    function setDistributor(IDistributor _distributor) external onlyOwner {
+        distributor = _distributor;
+    }
+
+    function setMinDeposit(uint256 _minDeposit) external onlySetter {
         MIN_DEPOSIT = _minDeposit;
         emit MinDepositChanged(_minDeposit);
     }
 
-    function setMaxDeposit(uint256 _maxDeposit) external onlyOwner {
+    function setMaxDeposit(uint256 _maxDeposit) external onlySetter {
         MAX_DEPOSIT = _maxDeposit;
         emit MaxDepositChanged(_maxDeposit);
     }
 
-    function setStartTimestamp(uint256 _startTimestamp) external onlyOwner {
+    function setStartTimestamp(uint256 _startTimestamp) external onlySetter {
         require(block.timestamp < _startTimestamp, "started");
         startTimestamp = _startTimestamp;
         // reinitialize lastRewardTimestamp of all existing pools (if any)
@@ -369,6 +375,11 @@ contract Mining is Ownable, IMining {
 
     modifier onlyDAC() {
         require(msg.sender == address(DAC), "not DAC");
+        _;
+    }
+
+    modifier onlySetter() {
+        require(msg.sender == setter, "not setter");
         _;
     }
 

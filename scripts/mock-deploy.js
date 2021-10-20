@@ -19,7 +19,9 @@ async function main() {
     // await MockMetis.deployed();
     // console.log('MockMetis deployed to: ', MockMetis.address);
 
-    const Distributor = DistributorFactory.attach('0x5522e8872d27a7456DF6bc42277B8416C4Ef6108');
+    const Distributor = await DistributorFactory.deploy(MetisAddress);
+    await Distributor.deployed();
+    console.log('Distributor deployed to: ', Distributor.address);
 
     const Vault = await VaultFactory.deploy(MetisAddress, );
     await Vault.deployed();
