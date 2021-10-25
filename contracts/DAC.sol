@@ -921,9 +921,11 @@ contract DAC is IDAC, AccessControl, Ownable{
     mapping(address => uint256) public userToDAC;
     mapping(bytes32 => uint256) public invitationCodeToDAC;
     mapping(uint256 => bytes32) public DACToInvitationCode;
+    mapping(address => bool) public isInvitedUser;
     uint256 public DISMISS_LIMIT = 10;
     uint256 public MIN_DEPOSIT = 10 * 1e18;
     uint256 public MAX_DEPOSIT = 2000 * 1e18;
+    bool public onlyInvitedUser = true;
 
     constructor (IMetisToken metis, IMining miningContract) public{
         Metis = metis;
@@ -934,6 +936,9 @@ contract DAC is IDAC, AccessControl, Ownable{
     * @dev create new DAC
     */
     function createDAC(string memory name, string memory introduction, string memory category, string memory url, string memory photo, uint256 amount) public override returns(bool){
+        if (onlyInvitedUser) {
+            require(isInvitedUser[_msgSender()], "not invited");
+        }
         require(!_userExist(_msgSender()), "user exist");
         require(!(amount < MIN_DEPOSIT || amount > MAX_DEPOSIT), "amount not allowed");
         require(Metis.allowance(_msgSender(), address(MiningContract)) >= amount, "Not enough allowance for mining contract");   // check balance
@@ -1070,6 +1075,17 @@ contract DAC is IDAC, AccessControl, Ownable{
 
     function setDAOOpening(bool _open) external onlyOwner {
         DAOOpening = _open;
+    }
+
+    function setOnlyInvitedUser(bool _onlyInvitedUser) external onlyOwner {
+        onlyInvitedUser = _onlyInvitedUser;
+    }
+
+    function addInvitedUsers(address[] memory _users) external onlyOwner {
+        require(_users.length > 0, "zero array");
+        for (uint256 index = 0; index < _users.length; index++) {
+            isInvitedUser[_users[index]] = true;
+        }
     }
 
     /**

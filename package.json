@@ -6,9 +6,9 @@
   "scripts": {
     "test": "hardhat test",
     "compile": "hardhat compile",
-    "mock-deploy": "hardhat run scripts/mock-deploy.js --network metis",
-    "mock-setting": "hardhat run scripts/mock-settings.js --network metis",
-    "deploy": "hardhat run scripts/deploy.js --network metis"
+    "deploy": "hardhat run scripts/deploy.js --network metis",
+    "setting": "hardhat run scripts/settings.js --network metis",
+    "invite": "npx hardhat run ./scripts/add-invited-users.js --network metis"
   },
   "license": "MIT",
   "devDependencies": {

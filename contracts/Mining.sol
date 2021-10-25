@@ -81,15 +81,16 @@ contract Mining is Ownable, IMining {
     }
 
     function calcMetisReward(
-        uint256 timestamp, 
+        uint256 currentTime,
+        uint256 lastRewardTime, 
         uint256 allocPoint 
     ) public view returns (uint256 accTime, uint256 MetisReward) {
-        accTime = block.timestamp.sub(timestamp);
+        accTime = currentTime.sub(lastRewardTime);
         MetisReward = MetisPerSecond.mul(accTime).mul(allocPoint).div(totalAllocPoint);
     }
 
     // View function to see pending Metis on frontend.
-    function pendingMetis(uint256 _pid, address _user) external view returns (uint256) {
+    function pendingMetis(uint256 _currentTime, uint256 _pid, address _user) external view returns (uint256) {
         PoolInfo memory pool = poolInfo[_pid];
         UserInfo memory user = userInfo[_pid][_user];
         uint256 _dacId = DAC.userToDAC(_user);
@@ -99,8 +100,8 @@ contract Mining is Ownable, IMining {
             share = accMetisPerShare;
         }
         uint256 totalWeight = DACRecorder.totalWeight();
-        if (dacState == IDACRecorder.DACState.Active && block.timestamp > pool.lastRewardTimestamp && totalWeight != 0) {
-            (,uint256 MetisReward) = calcMetisReward(pool.lastRewardTimestamp, pool.allocPoint);
+        if (dacState == IDACRecorder.DACState.Active && _currentTime > pool.lastRewardTimestamp && totalWeight != 0) {
+            (,uint256 MetisReward) = calcMetisReward(_currentTime, pool.lastRewardTimestamp, pool.allocPoint);
             share = share.add(MetisReward.mul(1e18).div(totalWeight));
         }
         uint256 _userWeight = DACRecorder.userWeight(_user);
@@ -128,7 +129,7 @@ contract Mining is Ownable, IMining {
             pool.lastRewardTimestamp = block.timestamp;
             return;
         }
-        (,uint256 MetisReward) = calcMetisReward(pool.lastRewardTimestamp, pool.allocPoint);
+        (,uint256 MetisReward) = calcMetisReward(block.timestamp, pool.lastRewardTimestamp, pool.allocPoint);
         if (teamAddr != address(0)) {
             distributor.distribute(teamAddr, MetisReward.div(9));
         }
@@ -147,7 +148,6 @@ contract Mining is Ownable, IMining {
         uint256 _amount,
         uint256 _dacId
     ) onlyDAC external override returns (bool) {
-        (IDACRecorder.DACState dacState,,,,) = DACRecorder.checkDACInfo(_dacId);
         bool isCreator = _creator == address(0);
         address existedCreator = DACRecorder.creatorOf(_user);
         if (isCreator) {
@@ -168,8 +168,9 @@ contract Mining is Ownable, IMining {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][_user];
         updatePool(_pid);
+        (IDACRecorder.DACState dacState,,uint256 accMetisPerShare,,) = DACRecorder.checkDACInfo(_dacId);
         if (user.amount > 0) {
-            _sendPending(_dacId, _pid, _user);
+            _sendPending(_pid, _user, dacState, accMetisPerShare);
         }
         if (_amount > 0 && dacState == IDACRecorder.DACState.Active) {
             uint256 remainingAmount = user.amount.add(_amount);
@@ -185,7 +186,11 @@ contract Mining is Ownable, IMining {
             IERC20(pool.token).safeTransferFrom(_user, address(this), _amount);
         }
         uint256 _userWeight = DACRecorder.userWeight(_user);
-        user.rewardDebt = _userWeight.mul(pool.accMetisPerShare).div(1e18);
+        uint256 share = pool.accMetisPerShare;
+        if (dacState == IDACRecorder.DACState.Inactive) {
+            share = accMetisPerShare;
+        } 
+        user.rewardDebt = _userWeight.mul(share).div(1e18);
         emit Deposit(_creator, _user, _pid, _amount, _dacId);
         return true;
     }
@@ -206,10 +211,10 @@ contract Mining is Ownable, IMining {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         updatePool(_pid);
-        _sendPending(_dacId, _pid, msg.sender);
+        (IDACRecorder.DACState dacState,uint256 userCount,uint256 accMetisPerShare,,) = DACRecorder.checkDACInfo(_dacId);
+        _sendPending(_pid, msg.sender, dacState, accMetisPerShare);
         if(_amount > 0) {
             uint256 remainingAmount = user.amount.sub(_amount);
-            (,uint256 userCount,,,) = DACRecorder.checkDACInfo(_dacId);
             if (isCreator) {
                 if (userCount > DACRecorder.MIN_MEMBER_COUNT() || DACRecorder.DAO_OPEN()) {
                     require(
@@ -245,7 +250,11 @@ contract Mining is Ownable, IMining {
             IERC20(pool.token).safeTransfer(address(msg.sender), _amount);
         }
         uint256 _userWeight = DACRecorder.userWeight(msg.sender);
-        user.rewardDebt = _userWeight.mul(pool.accMetisPerShare).div(1e18);
+        uint256 share = pool.accMetisPerShare;
+        if (dacState == IDACRecorder.DACState.Inactive) {
+            share = accMetisPerShare;
+        } 
+        user.rewardDebt = _userWeight.mul(share).div(1e18);
         emit Withdraw(_creator, msg.sender, _pid, _amount, _dacId);
         return true;
     }
@@ -256,7 +265,8 @@ contract Mining is Ownable, IMining {
         PoolInfo memory pool = poolInfo[_pid];
         UserInfo storage creator = userInfo[_pid][_creator];
         updatePool(_pid);
-        _sendPending(_dacId, _pid, _creator);
+        (IDACRecorder.DACState dacState,,uint256 accMetisPerShare,,) = DACRecorder.checkDACInfo(_dacId);
+        _sendPending(_pid, _creator, dacState, accMetisPerShare);
         DACRecorder.updateCreatorInfo(_creator, _dacId, 0, pool.accMetisPerShare, true);
         DACRecorder.removeCreator(_creator);
         IERC20(pool.token).safeTransfer(_creator, creator.amount);
@@ -266,10 +276,9 @@ contract Mining is Ownable, IMining {
 
     /* ========== INTERNAL FUNCTIONS ========== */
 
-    function _sendPending(uint256 _dacId, uint256 _pid, address _user) internal {
+    function _sendPending(uint256 _pid, address _user, IDACRecorder.DACState dacState, uint256 accMetisPerShare) internal {
         PoolInfo memory pool = poolInfo[_pid];
         UserInfo memory user = userInfo[_pid][_user];
-        (IDACRecorder.DACState dacState,, uint256 accMetisPerShare,,) = DACRecorder.checkDACInfo(_dacId);
         uint256 share = pool.accMetisPerShare;
         if (dacState == IDACRecorder.DACState.Inactive) {
             share = accMetisPerShare;

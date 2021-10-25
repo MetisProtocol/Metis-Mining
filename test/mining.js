@@ -84,6 +84,14 @@ describe("Mining Contract", function () {
             await this.metis.connect(this.bob).approve(this.mining.address, hre.ethers.constants.MaxUint256);
             await this.metis.connect(this.carol).approve(this.mining.address, hre.ethers.constants.MaxUint256);
             await this.metis.connect(this.daniel).approve(this.mining.address, hre.ethers.constants.MaxUint256);
+
+            // invite test users
+            await this.dac.addInvitedUsers([
+                this.alice.address,
+                this.bob.address,
+                this.carol.address,
+                this.daniel.address
+            ]);
         });
 
         it("should deposit and withdraw properly", async function () {
@@ -182,42 +190,53 @@ describe("Mining Contract", function () {
             );
             expect(await this.metis.balanceOf(this.bob.address)).to.equal("1000000000000000000000");
 
-            await this.dac.connect(this.carol).createDAC(
-                'carol',
-                'introduction',
-                'category',
-                'url',
-                'photo',
-                '2000000000000000000000'
-            );
-            expect(await this.metis.balanceOf(this.carol.address)).to.equal("1000000000000000000000");
-            const carolDACId = await this.dac.userToDAC(this.carol.address);
-            const carolInviteCode = await this.dac.DACToInvitationCode(carolDACId);
-            await this.dac.connect(this.daniel).joinDAC(
-                carolDACId,
-                '2000000000000000000000',
-                carolInviteCode
-            );
-            expect(await this.metis.balanceOf(this.daniel.address)).to.equal("1000000000000000000000");
-            
+            // await this.dac.connect(this.carol).createDAC(
+            //     'carol',
+            //     'introduction',
+            //     'category',
+            //     'url',
+            //     'photo',
+            //     '2000000000000000000000'
+            // );
+            // expect(await this.metis.balanceOf(this.carol.address)).to.equal("1000000000000000000000");
+            // const carolDACId = await this.dac.userToDAC(this.carol.address);
+            // const carolInviteCode = await this.dac.DACToInvitationCode(carolDACId);
+            // await this.dac.connect(this.daniel).joinDAC(
+            //     carolDACId,
+            //     '2000000000000000000000',
+            //     carolInviteCode
+            // );
+            // expect(await this.metis.balanceOf(this.daniel.address)).to.equal("1000000000000000000000");
+            await TimeHelper.advanceTimeAndBlock(1000);
+            // Alice dismiss dac
             await this.mining.connect(this.alice).withdraw(
                 ADDRESS_ZERO,
                 '0',
                 '2000000000000000000000',
             );
             expect(await this.metis.balanceOf(this.alice.address)).to.equal("3000000000000000000000");
-            expect(await this.metis.balanceOf(this.bob.address)).to.equal("1000000000000000000000");
-            await TimeHelper.advanceTimeAndBlock(1000);
-            const pendingBobRewards = await this.mining.pendingMetis(0, this.bob.address);
-            expect(pendingBobRewards).to.equal(0);
+            
+            let latestTime = await TimeHelper.latestBlockTimestamp();
+            let pendingBobRewards = await this.mining.pendingMetis(latestTime, 0, this.bob.address);
 
+            await this.mining.connect(this.bob).withdraw(
+                this.alice.address,
+                '0',
+                '0',
+            );
+            expect(await this.metis.balanceOf(this.bob.address)).to.equal("1000000000000000000000");
+            expect(await this.vault.shares(this.bob.address)).to.equal(pendingBobRewards);
+
+            await TimeHelper.advanceTimeAndBlock(1000);
+            latestTime = await TimeHelper.latestBlockTimestamp();
+            pendingBobRewards = await this.mining.pendingMetis(latestTime, 0, this.bob.address);
+            expect(pendingBobRewards).to.equal(0);
             await this.mining.connect(this.bob).withdraw(
                 this.alice.address,
                 '0',
                 '2000000000000000000000',
             );
             expect(await this.metis.balanceOf(this.bob.address)).to.equal("3000000000000000000000");
-            expect(await this.vault.shares(this.bob.address)).to.equal("0");
         });
 
         it("can't withdraw all with DAO opening", async function () {
@@ -336,7 +355,8 @@ describe("Mining Contract", function () {
             expect(await this.vault.shares(this.alice.address)).to.equal("0");
 
             await TimeHelper.advanceTimeAndBlock(40);
-            const pending = await this.mining.pendingMetis(0, this.alice.address);
+            let latestTime = await TimeHelper.latestBlockTimestamp();
+            const pending = await this.mining.pendingMetis(latestTime, 0, this.alice.address);
             await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0');
             const aliceReward = pending.add(1e15);
             expect(await this.vault.shares(this.alice.address)).to.equal(aliceReward.toString());
@@ -367,11 +387,13 @@ describe("Mining Contract", function () {
 
             // advance 100 to block.timestamp and one block
             await TimeHelper.advanceTimeAndBlock(100);
-            const alicePending = await this.mining.pendingMetis(0, this.alice.address);
+            let latestTime = await TimeHelper.latestBlockTimestamp();
+            const alicePending = await this.mining.pendingMetis(latestTime, 0, this.alice.address);
             await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0');
             const aliceReward = alicePending.add(1e15 * 0.5);
             expect(await this.vault.shares(this.alice.address)).to.equal(aliceReward.toString());
-            const bobPending = await this.mining.pendingMetis(0, this.bob.address);
+            latestTime = await TimeHelper.latestBlockTimestamp();
+            const bobPending = await this.mining.pendingMetis(latestTime, 0, this.bob.address);
             await this.mining.connect(this.bob).withdraw(ADDRESS_ZERO, '0', '0');
             const bobReward = bobPending.add(1e15 * 0.5);
             expect(await this.vault.shares(this.bob.address)).to.equal(bobReward.toString());
@@ -406,13 +428,15 @@ describe("Mining Contract", function () {
                 '1000000000000000000000'
             )
             await TimeHelper.advanceTimeAndBlock(100);
-            let alicePending = await this.mining.pendingMetis(0, this.alice.address);
+            let latestTime = await TimeHelper.latestBlockTimestamp();
+            let alicePending = await this.mining.pendingMetis(latestTime, 0, this.alice.address);
             console.log('alicePending1', alicePending.toString());
             await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0');
             let aliceReward = alicePending.add(1e15);
             const firstAliceShare = await this.vault.shares(this.alice.address);
             expect(firstAliceShare).to.equal(aliceReward.toString());
-            alicePending = await this.mining.pendingMetis(0, this.alice.address);
+            latestTime = await TimeHelper.latestBlockTimestamp();
+            alicePending = await this.mining.pendingMetis(latestTime, 0, this.alice.address);
             console.log('alicePending2', alicePending.toString())
             const aliceDACId = await this.dac.userToDAC(this.alice.address);
             const aliceInviteCode = await this.dac.DACToInvitationCode(aliceDACId);
@@ -430,7 +454,8 @@ describe("Mining Contract", function () {
             console.log('last reward time', poolInfo.lastRewardTimestamp.toString());
             console.log('pool share', poolInfo.accMetisPerShare.toString());
             
-            const metisReward = await this.mining.calcMetisReward(poolInfo.lastRewardTimestamp, 100);
+            latestTime = await TimeHelper.latestBlockTimestamp();
+            const metisReward = await this.mining.calcMetisReward(latestTime, poolInfo.lastRewardTimestamp, 100);
             console.log('acc time', metisReward.accTime.toString());
             console.log('metisReward', metisReward.MetisReward.toString());
 
@@ -451,20 +476,23 @@ describe("Mining Contract", function () {
             console.log('bobDACInfo amount', bobDACInfo.amount.toString());
             console.log('bobDACInfo power', bobDACInfo.accPower.toString());
 
-            const alicePerSecond = await this.mining.pendingMetis(0, this.alice.address);
+            latestTime = await TimeHelper.latestBlockTimestamp();
+            const alicePerSecond = await this.mining.pendingMetis(latestTime, 0, this.alice.address);
             console.log('alicePerSecond', alicePerSecond.toString())
-            const bobPerSecond = await this.mining.pendingMetis(0, this.bob.address);
+            latestTime = await TimeHelper.latestBlockTimestamp();
+            const bobPerSecond = await this.mining.pendingMetis(latestTime, 0, this.bob.address);
             console.log('bobPerSecond', bobPerSecond.toString());
 
             await TimeHelper.advanceTimeAndBlock(99);
-
-            alicePending = await this.mining.pendingMetis(0, this.alice.address);
+            latestTime = await TimeHelper.latestBlockTimestamp();
+            alicePending = await this.mining.pendingMetis(latestTime, 0, this.alice.address);
             aliceReward = alicePending.add(alicePerSecond);
             await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0');
             const secondAliceShare = await this.vault.shares(this.alice.address);
             expect(secondAliceShare.sub(firstAliceShare)).to.equal(aliceReward);
-
-            bobPending = await this.mining.pendingMetis(0, this.bob.address);
+            
+            latestTime = await TimeHelper.latestBlockTimestamp();
+            bobPending = await this.mining.pendingMetis(latestTime, 0, this.bob.address);
             await this.mining.connect(this.bob).withdraw(this.alice.address, '0', '0');
             bobReward = bobPending.add(bobPerSecond);
             expect(await this.vault.shares(this.bob.address)).to.equal(bobReward);
@@ -481,7 +509,8 @@ describe("Mining Contract", function () {
                 '1000000000000000000000'
             );
             await TimeHelper.advanceTimeAndBlock(100);
-            const alicePending = await this.mining.pendingMetis(0, this.alice.address);
+            let latestTime = await TimeHelper.latestBlockTimestamp();
+            const alicePending = await this.mining.pendingMetis(latestTime, 0, this.alice.address);
             await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0');
             let aliceReward = alicePending.add(1e15);
             const firstAliceShare = await this.vault.shares(this.alice.address);
@@ -499,7 +528,8 @@ describe("Mining Contract", function () {
             await this.mining.connect(this.bob).withdraw(this.alice.address, '0', '100000000000000000000');
             // calculate alice reward per second
             await TimeHelper.advanceTimeAndBlock(1);
-            const alicePerSecond = await this.mining.pendingMetis(0, this.alice.address);
+            latestTime = await TimeHelper.latestBlockTimestamp();
+            const alicePerSecond = await this.mining.pendingMetis(latestTime, 0, this.alice.address);
             expect(alicePerSecond).to.equal(1e15);
         });
 
@@ -515,7 +545,8 @@ describe("Mining Contract", function () {
                 '1000000000000000000000'
             )
             await TimeHelper.advanceTimeAndBlock(100);
-            let accTime = ((await this.mining.calcMetisReward(startTime, '100')).accTime.toNumber());
+            let latestTime = await TimeHelper.latestBlockTimestamp();
+            let accTime = ((await this.mining.calcMetisReward(latestTime, startTime, '100')).accTime.toNumber());
             await this.mining.connect(this.alice).withdraw(ADDRESS_ZERO, '0', '0');
             accTime += 1;
             let aliceReward = accTime * 1e15;

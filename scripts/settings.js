@@ -1,6 +1,6 @@
 const hre = require('hardhat');
 const fs = require('fs');
-const addresses = require('./mock-addresses.json');
+const addresses = require('./addresses.json');
 
 async function main() {
     const accounts = await ethers.getSigners();
@@ -21,9 +21,9 @@ async function main() {
     const Mining = MiningFactory.attach(addresses.Mining);
     const DAC = DACFactory.attach(addresses.DAC);
 
-    // set Mining contract for Distributor
-    await Distributor.setMiningContract(Mining.address);
-    console.log('Set Mining contract for Distributor');
+    // // set Mining contract for Distributor
+    // await Distributor.setMiningContract(Mining.address);
+    // console.log('Set Mining contract for Distributor');
     // set Mining contract for DACRecorder
     await DACRecorder.setMiningContract(Mining.address);
     // set DAC contract for DACRecorder
@@ -37,7 +37,7 @@ async function main() {
     console.log('Set DAC contract for Mining');
     // add Metis pool
     await Mining.add(100, MetisAddress, false,);
-    console.log('Add MockMetis pool');
+    console.log('Add Metis pool');
     // set `ADMIN_ROLE` admin role
     await DAC.setRoleAdmin("0x61646d696e000000000000000000000000000000000000000000000000000000", "0x61646d696e000000000000000000000000000000000000000000000000000000");
     console.log('set `ADMIN_ROLE` admin role');
