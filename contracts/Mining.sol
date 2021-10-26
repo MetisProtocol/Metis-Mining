@@ -368,7 +368,7 @@ contract Mining is Ownable, IMining {
         startTimestamp = _startTimestamp;
         // reinitialize lastRewardTimestamp of all existing pools (if any)
         uint256 length = poolInfo.length;
-        for (uint256 pid = 0; pid <= length; ++pid) {
+        for (uint256 pid = 0; pid < length; ++pid) {
             PoolInfo storage pool = poolInfo[pid];
             pool.lastRewardTimestamp = _startTimestamp;
         }
