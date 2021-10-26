@@ -562,5 +562,11 @@ describe("Mining Contract", function () {
             // console.log('afterClaimBal', afterClaimBal);
             expect(afterClaimBal.sub(beforeClaimBal)).to.equal((aliceShare * 0.9).toString());
         });
+
+        it("should set speed properly", async function () {
+            await this.mining.setMetisPerSecond('1000000000000000');
+            const metisPerscond = await this.mining.MetisPerSecond();
+            expect(metisPerscond).equal('1000000000000000');
+        });
     });
 });

@@ -113,7 +113,7 @@ contract Mining is Ownable, IMining {
     // Update reward vairables for all pools. Be careful of gas spending!
     function massUpdatePools() public {
         uint256 length = poolInfo.length;
-        for (uint256 pid = 0; pid <= length; ++pid) {
+        for (uint256 pid = 0; pid < length; ++pid) {
             updatePool(pid);
         }
     }

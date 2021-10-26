@@ -21,9 +21,9 @@ async function main() {
     const Mining = MiningFactory.attach(addresses.Mining);
     const DAC = DACFactory.attach(addresses.DAC);
 
-    // // set Mining contract for Distributor
-    // await Distributor.setMiningContract(Mining.address);
-    // console.log('Set Mining contract for Distributor');
+    // set Mining contract for Distributor
+    await Distributor.setMiningContract(Mining.address);
+    console.log('Set Mining contract for Distributor');
     // set Mining contract for DACRecorder
     await DACRecorder.setMiningContract(Mining.address);
     // set DAC contract for DACRecorder
