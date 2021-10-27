@@ -91,8 +91,8 @@ contract Mining is Ownable, IMining {
 
     // View function to see pending Metis on frontend.
     function pendingMetis(uint256 _currentTime, uint256 _pid, address _user) external view returns (uint256) {
-        PoolInfo memory pool = poolInfo[_pid];
-        UserInfo memory user = userInfo[_pid][_user];
+        PoolInfo storage pool = poolInfo[_pid];
+        UserInfo storage user = userInfo[_pid][_user];
         uint256 _dacId = DAC.userToDAC(_user);
         (IDACRecorder.DACState dacState,, uint256 accMetisPerShare,,) = DACRecorder.checkDACInfo(_dacId);
         uint256 share = pool.accMetisPerShare;
@@ -181,7 +181,7 @@ contract Mining is Ownable, IMining {
             } else {
                 DACRecorder.updateMemberInfo(_user, _dacId, user.amount, false, true);
                 // update creator rewardDebt
-                _updateCreatorRewardDebt(_pid, _creator);
+                _updateCreatorRewardDebt(_pid, _creator, dacState, accMetisPerShare);
             }
             IERC20(pool.token).safeTransferFrom(_user, address(this), _amount);
         }
@@ -244,7 +244,7 @@ contract Mining is Ownable, IMining {
                     DACRecorder.updateMemberInfo(msg.sender, _dacId, remainingAmount, false, false);
                 }
                 // update creator rewardDebt
-                _updateCreatorRewardDebt(_pid, _creator);
+                _updateCreatorRewardDebt(_pid, _creator, dacState, accMetisPerShare);
             }
             user.amount = remainingAmount;
             IERC20(pool.token).safeTransfer(address(msg.sender), _amount);
@@ -262,7 +262,7 @@ contract Mining is Ownable, IMining {
     function dismissDAC(uint256 _dacId, uint256 _pid, address _creator) onlyDAC external override returns (bool) {
         require(DACRecorder.DAO_OPEN(), "DAO is not opened");
         require(DACRecorder.isCreator(_creator), "not a creator");
-        PoolInfo memory pool = poolInfo[_pid];
+        PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage creator = userInfo[_pid][_creator];
         updatePool(_pid);
         (IDACRecorder.DACState dacState,,uint256 accMetisPerShare,,) = DACRecorder.checkDACInfo(_dacId);
@@ -277,8 +277,8 @@ contract Mining is Ownable, IMining {
     /* ========== INTERNAL FUNCTIONS ========== */
 
     function _sendPending(uint256 _pid, address _user, IDACRecorder.DACState dacState, uint256 accMetisPerShare) internal {
-        PoolInfo memory pool = poolInfo[_pid];
-        UserInfo memory user = userInfo[_pid][_user];
+        PoolInfo storage pool = poolInfo[_pid];
+        UserInfo storage user = userInfo[_pid][_user];
         uint256 share = pool.accMetisPerShare;
         if (dacState == IDACRecorder.DACState.Inactive) {
             share = accMetisPerShare;
@@ -290,11 +290,14 @@ contract Mining is Ownable, IMining {
         }
     }
 
-    function _updateCreatorRewardDebt(uint256 _pid, address _creator) internal {
-        PoolInfo memory pool = poolInfo[_pid];
+    function _updateCreatorRewardDebt(uint256 _pid, address _creator, IDACRecorder.DACState dacState, uint256 accMetisPerShare) internal {
+        PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage creator = userInfo[_pid][_creator];
-        (, uint256 creatorAccPower,) = DACRecorder.checkUserInfo(_creator);
-        creator.rewardDebt = creator.amount.mul(creatorAccPower).mul(pool.accMetisPerShare).div(1e18);
+        if (creator.amount > 0) {
+            _sendPending(_pid, _creator, dacState, accMetisPerShare);
+            (, uint256 creatorAccPower,) = DACRecorder.checkUserInfo(_creator);
+            creator.rewardDebt = creator.amount.mul(creatorAccPower).mul(pool.accMetisPerShare).div(1e18);
+        }
     }
 
     /* ========== RESTRICTED FUNCTIONS ========== */

@@ -568,5 +568,63 @@ describe("Mining Contract", function () {
             const metisPerscond = await this.mining.MetisPerSecond();
             expect(metisPerscond).equal('1000000000000000');
         });
+
+        it("should acc rewards properly", async function () {
+            await this.dac.connect(this.alice).createDAC(
+                'alice',
+                'introduction',
+                'category',
+                'url',
+                'photo',
+                '10000000000000000000'
+            )
+            const aliceDACId = await this.dac.userToDAC(this.alice.address);
+            const aliceInviteCode = await this.dac.DACToInvitationCode(aliceDACId);
+            await TimeHelper.advanceTimeAndBlock(100);
+            let latestTime = await TimeHelper.latestBlockTimestamp();
+            let pendingAliceRewards = await this.mining.pendingMetis(latestTime, 0, this.alice.address);
+            console.log('pendingAliceRewards1', pendingAliceRewards.toString());
+            await this.dac.connect(this.bob).joinDAC(
+                aliceDACId,
+                '2000000000000000000000',
+                aliceInviteCode
+            );
+            let aliceShare = await this.vault.shares(this.alice.address);
+            console.log('aliceShare1', aliceShare.toString());
+            await this.dac.connect(this.carol).joinDAC(
+                aliceDACId,
+                '2000000000000000000000',
+                aliceInviteCode
+            );
+            aliceShare = await this.vault.shares(this.alice.address);
+            console.log('aliceShare2', aliceShare.toString());
+            await this.dac.connect(this.daniel).joinDAC(
+                aliceDACId,
+                '2000000000000000000000',
+                aliceInviteCode
+            );
+            aliceShare = await this.vault.shares(this.alice.address);
+            console.log('aliceShare3', aliceShare.toString());
+            latestTime = await TimeHelper.latestBlockTimestamp();
+            pendingAliceRewards = await this.mining.pendingMetis(latestTime, 0, this.alice.address);
+            console.log('pendingAliceRewards2', pendingAliceRewards.toString());
+            await TimeHelper.advanceTimeAndBlock(100);
+            latestTime = await TimeHelper.latestBlockTimestamp();
+            pendingAliceRewards = await this.mining.pendingMetis(latestTime, 0, this.alice.address);
+            console.log('pendingAliceRewards3', pendingAliceRewards.toString());
+
+            const pendingBobRewards = await this.mining.pendingMetis(latestTime, 0, this.bob.address);
+            console.log('pendingBobRewards', pendingBobRewards.toString());
+            const pendingCarolRewards = await this.mining.pendingMetis(latestTime, 0, this.carol.address);
+            console.log('pendingCarolRewards', pendingCarolRewards.toString());
+            const pendingDanielRewards = await this.mining.pendingMetis(latestTime, 0, this.daniel.address);
+            console.log('pendingDanielRewards', pendingDanielRewards.toString());
+            // await TimeHelper.advanceTimeAndBlock(1);
+            // latestTime = await TimeHelper.latestBlockTimestamp();
+            // pendingAliceRewards = await this.mining.pendingMetis(latestTime, 0, this.alice.address);
+            // console.log('pendingAliceRewards3', pendingAliceRewards.toString());
+            // let pendingBobRewards = await this.mining.pendingMetis(latestTime, 0, this.bob.address);
+            // console.log('pendingBobRewards', pendingBobRewards.toString());
+        });
     });
 });
