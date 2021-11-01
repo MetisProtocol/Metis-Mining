@@ -56,7 +56,7 @@ async function main() {
 
     console.log(addresses);
 
-    fs.writeFileSync(`${__dirname}/addresses.json`, JSON.stringify(addresses, null, 4));
+    fs.writeFileSync(`${__dirname}/addresses2.json`, JSON.stringify(addresses, null, 4));
 }
 
 // We recommend this pattern to be able to use async/await everywhere

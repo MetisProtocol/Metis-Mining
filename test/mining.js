@@ -99,7 +99,6 @@ describe("Mining Contract", function () {
                 'alice',
                 'introduction',
                 'category',
-                'url',
                 'photo',
                 '2000000000000000000000'
             );
@@ -129,7 +128,6 @@ describe("Mining Contract", function () {
                 'alice',
                 'introduction',
                 'category',
-                'url',
                 'photo',
                 '2000000000000000000000'
             );
@@ -172,7 +170,6 @@ describe("Mining Contract", function () {
                 'alice',
                 'introduction',
                 'category',
-                'url',
                 'photo',
                 '2000000000000000000000'
             );
@@ -194,7 +191,6 @@ describe("Mining Contract", function () {
             //     'carol',
             //     'introduction',
             //     'category',
-            //     'url',
             //     'photo',
             //     '2000000000000000000000'
             // );
@@ -245,7 +241,6 @@ describe("Mining Contract", function () {
                 'alice',
                 'introduction',
                 'category',
-                'url',
                 'photo',
                 '2000000000000000000000'
             );
@@ -264,7 +259,6 @@ describe("Mining Contract", function () {
                 'alice',
                 'introduction',
                 'category',
-                'url',
                 'photo',
                 '2000000000000000000000'
             );
@@ -288,7 +282,6 @@ describe("Mining Contract", function () {
                 'alice',
                 'introduction',
                 'category',
-                'url',
                 'photo',
                 '1'
             )).to.be.revertedWith('amount not allowed');
@@ -296,7 +289,6 @@ describe("Mining Contract", function () {
                 'alice',
                 'introduction',
                 'category',
-                'url',
                 'photo',
                 '2001000000000000000000'
             )).to.be.revertedWith('amount not allowed');
@@ -305,7 +297,6 @@ describe("Mining Contract", function () {
                 'alice',
                 'introduction',
                 'category',
-                'url',
                 'photo',
                 '2000000000000000000000'
             )
@@ -336,7 +327,6 @@ describe("Mining Contract", function () {
                 'alice',
                 'introduction',
                 'category',
-                'url',
                 'photo',
                 '2000000000000000000000'
             )
@@ -368,7 +358,6 @@ describe("Mining Contract", function () {
                 'alice',
                 'introduction',
                 'category',
-                'url',
                 'photo',
                 '1000000000000000000000'
             )
@@ -379,7 +368,6 @@ describe("Mining Contract", function () {
                 'bob',
                 'introduction',
                 'category',
-                'url',
                 'photo',
                 '1000000000000000000000'
             )
@@ -410,7 +398,6 @@ describe("Mining Contract", function () {
                 'carol',
                 'introduction',
                 'category',
-                'url',
                 'photo',
                 '1000000000000000000000'
             )
@@ -423,7 +410,6 @@ describe("Mining Contract", function () {
                 'alice',
                 'introduction',
                 'category',
-                'url',
                 'photo',
                 '1000000000000000000000'
             )
@@ -504,7 +490,6 @@ describe("Mining Contract", function () {
                 'alice',
                 'introduction',
                 'category',
-                'url',
                 'photo',
                 '1000000000000000000000'
             );
@@ -540,7 +525,6 @@ describe("Mining Contract", function () {
                 'alice',
                 'introduction',
                 'category',
-                'url',
                 'photo',
                 '1000000000000000000000'
             )
@@ -574,7 +558,6 @@ describe("Mining Contract", function () {
                 'alice',
                 'introduction',
                 'category',
-                'url',
                 'photo',
                 '10000000000000000000'
             )
@@ -625,6 +608,15 @@ describe("Mining Contract", function () {
             // console.log('pendingAliceRewards3', pendingAliceRewards.toString());
             // let pendingBobRewards = await this.mining.pendingMetis(latestTime, 0, this.bob.address);
             // console.log('pendingBobRewards', pendingBobRewards.toString());
+        });
+
+        it("test set function to 0 and reset", async function () {
+            await this.mining.set(0, 0, true);
+            let poolInfo = await this.mining.poolInfo(0);
+            console.log('set 1', poolInfo);
+            await this.mining.set(0, 100, true);
+            poolInfo = await this.mining.poolInfo(0);
+            console.log('set 2', poolInfo);
         });
     });
 });

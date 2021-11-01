@@ -862,7 +862,7 @@ interface IDAC {
 
     event UpdatedWhitelist(address indexed user, uint256 indexed amount);
 
-    function createDAC(string memory name, string memory introduction, string memory category, string memory url, string memory photo, uint256 amount) external returns(bool);
+    function createDAC(string memory name, string memory introduction, string memory category, string memory photo, uint256 amount) external returns(bool);
 
     function joinDAC(uint256 dacId, uint256 amount, bytes32 invitationCode) external returns(bool);
 
@@ -908,7 +908,6 @@ contract DAC is IDAC, AccessControl, Ownable{
         string name;
         string introduction;
         string category;
-        string url;
         string photo;
         uint256 amount;
         uint256 createTime;
@@ -935,7 +934,7 @@ contract DAC is IDAC, AccessControl, Ownable{
     /**
     * @dev create new DAC
     */
-    function createDAC(string memory name, string memory introduction, string memory category, string memory url, string memory photo, uint256 amount) public override returns(bool){
+    function createDAC(string memory name, string memory introduction, string memory category, string memory photo, uint256 amount) public override returns(bool){
         if (onlyInvitedUser) {
             require(isInvitedUser[_msgSender()], "not invited");
         }
@@ -943,7 +942,7 @@ contract DAC is IDAC, AccessControl, Ownable{
         require(!(amount < MIN_DEPOSIT || amount > MAX_DEPOSIT), "amount not allowed");
         require(Metis.allowance(_msgSender(), address(MiningContract)) >= amount, "Not enough allowance for mining contract");   // check balance
         // create new DAC
-        _createNewDAC(_msgSender(), name, introduction, category, url, photo, amount);
+        _createNewDAC(_msgSender(), name, introduction, category, photo, amount);
         _deposit(address(0), _msgSender(), amount, pool.length - 1);    // deposit
         return true;
     }
@@ -1117,16 +1116,16 @@ contract DAC is IDAC, AccessControl, Ownable{
         WHITELIST_ROLE = "whitelist";
         _setupRole(ADMIN_ROLE, _msgSender());    // grant `ADMIN_ROLE` to owner
         // generate sentinelDAC
-        DACInfo memory sentinelDAC = DACInfo(0, address(0), "", "", "", "", "", 0, 0, DACState.Dismissed);
+        DACInfo memory sentinelDAC = DACInfo(0, address(0), "", "", "", "", 0, 0, DACState.Dismissed);
         pool.push(sentinelDAC);
     }
 
     /**
     * @dev create new DAC
     */
-    function _createNewDAC(address creator, string memory name, string memory introduction, string memory category, string memory url, string memory photo, uint256 amount) internal {
+    function _createNewDAC(address creator, string memory name, string memory introduction, string memory category, string memory photo, uint256 amount) internal {
         bytes32 invitationCode = _generateInvitationCode(creator, pool.length);     // generate invitationCode
-        DACInfo memory newDac = DACInfo(pool.length, creator, name, introduction, category, url, photo, amount, block.timestamp, DACState.Active);  // dac info
+        DACInfo memory newDac = DACInfo(pool.length, creator, name, introduction, category, photo, amount, block.timestamp, DACState.Active);  // dac info
         pool.push(newDac);
         relations[newDac.id].add(creator);
         userToDAC[creator] = newDac.id;
