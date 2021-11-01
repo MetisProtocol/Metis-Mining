@@ -85,8 +85,10 @@ contract Mining is Ownable, IMining {
         uint256 lastRewardTime, 
         uint256 allocPoint 
     ) public view returns (uint256 accTime, uint256 MetisReward) {
-        accTime = currentTime.sub(lastRewardTime);
-        MetisReward = MetisPerSecond.mul(accTime).mul(allocPoint).div(totalAllocPoint);
+        if (totalAllocPoint > 0) {
+            accTime = currentTime.sub(lastRewardTime);
+            MetisReward = MetisPerSecond.mul(accTime).mul(allocPoint).div(totalAllocPoint);
+        }
     }
 
     // View function to see pending Metis on frontend.
