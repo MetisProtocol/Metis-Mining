@@ -1,5 +1,5 @@
 require("@nomiclabs/hardhat-waffle");
-require("@metis.io/hardhat-mvm");
+// require("@metis.io/hardhat-mvm");
 require('@openzeppelin/hardhat-upgrades');
 const { config } = require('dotenv');
 const { resolve } = require('path');
@@ -48,13 +48,13 @@ module.exports = {
         mnemonic,
       },
       gasPrice: 15000000,
-      ovm: true
+      ovm: false
     }
   },
-  ovm: {
-    solcVersion: '0.6.12', // Currently, we only support 0.5.16, 0.6.12, and 0.7.6 of the Solidity compiler           
-    optimizer: true,
-    runs: 9999
-  },
+  // ovm: {
+  //   solcVersion: '0.6.12', // Currently, we only support 0.5.16, 0.6.12, and 0.7.6 of the Solidity compiler           
+  //   optimizer: true,
+  //   runs: 9999
+  // },
 };
 

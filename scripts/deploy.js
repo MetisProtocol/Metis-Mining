@@ -20,25 +20,25 @@ async function main() {
     // await Distributor.deployed();
     console.log('Distributor deployed to: ', Distributor.address);
 
-    const Vault = await VaultFactory.deploy(MetisAddress, );
-    await Vault.deployed();
-    // const Vault = VaultFactory.attach('0x3B00912495b52c18324691695DDB015eF8a32195');
+    // const Vault = await VaultFactory.deploy(MetisAddress, );
+    // await Vault.deployed();
+    const Vault = VaultFactory.attach('0x0512eB35cCdc9839427a98Ce161a0cD5786841F9');
     console.log('Vault deployed to: ', Vault.address);
 
-    const DACRecorder = await DACRecorderFactory.deploy(MetisAddress, Vault.address, );
-    await DACRecorder.deployed();
-    // const DACRecorder = DACRecorderFactory.attach('0x4b16F8cC5Ce0cd58Dd9e3C65CAe1e1E165E5BfFa');
+    // const DACRecorder = await DACRecorderFactory.deploy(MetisAddress, Vault.address, );
+    // await DACRecorder.deployed();
+    const DACRecorder = DACRecorderFactory.attach('0x78c0CD62FBe2dA7A3d0a4a57eaFf964777ADcd61');
     console.log('DACRecorder deployed to: ', DACRecorder.address);
 
-    const Mining = await MiningFactory.deploy(
-        MetisAddress,
-        DACRecorder.address,
-        Distributor.address,
-        '18500000000000000',
-        1635192000,
-    );
-    await Mining.deployed();
-    // const Mining = MiningFactory.attach('0x8F02f857864C357fDD7E8C368ce525dB82C07965');
+    // const Mining = await MiningFactory.deploy(
+    //     MetisAddress,
+    //     DACRecorder.address,
+    //     Distributor.address,
+    //     '18500000000000000',
+    //     1635192000,
+    // );
+    // await Mining.deployed();
+    const Mining = MiningFactory.attach('0x98CCD6f4e4493216a1eF874ca7234FE445B2dC8E');
     console.log('Mining deployed to: ', Mining.address);
 
     const DAC = await hre.upgrades.deployProxy(DACFactory, [MetisAddress, Mining.address], {
