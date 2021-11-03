@@ -1,4 +1,5 @@
 const { expect } = require("chai");
+const { ethers, upgrades } = require("hardhat");
 const TimeHelper = require('./utils/time');
 
 const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000"
@@ -13,12 +14,13 @@ describe("Mining Contract", function () {
         this.carol = this.signers[3]
         this.daniel = this.signers[4]
 
-        this.MockMetisTokenFactory = await hre.ethers.getContractFactory('MockMetisToken');
-        this.VaultFactory = await hre.ethers.getContractFactory('Vault');
-        this.MiningFactory = await hre.ethers.getContractFactory('Mining');
-        this.DACRecorderFactory = await hre.ethers.getContractFactory('DACRecorder');
-        this.DistributorFactory = await hre.ethers.getContractFactory('Distributor');
-        this.DACFactory = await hre.ethers.getContractFactory('DAC');
+        this.MockMetisTokenFactory = await ethers.getContractFactory('MockMetisToken');
+        this.VaultFactory = await ethers.getContractFactory('Vault');
+        this.MiningFactory = await ethers.getContractFactory('Mining');
+        this.DACRecorderFactory = await ethers.getContractFactory('DACRecorder');
+        this.DistributorFactory = await ethers.getContractFactory('Distributor');
+        this.DACFactory = await ethers.getContractFactory('DAC');
+        this.UpgradeableDACFactory = await ethers.getContractFactory('MockUpgradeableDAC');
     });
 
     beforeEach(async function () {
@@ -63,7 +65,9 @@ describe("Mining Contract", function () {
             );
             await this.mining.deployed();
 
-            this.dac = await this.DACFactory.deploy(this.metis.address, this.mining.address);
+            this.dac = await upgrades.deployProxy(this.DACFactory, [this.metis.address, this.mining.address], {
+                initializer: "initialize"
+            });
             await this.dac.deployed();
 
             // config for related contracts
@@ -80,10 +84,10 @@ describe("Mining Contract", function () {
             await this.dac.grantRole("0x6d696e696e670000000000000000000000000000000000000000000000000000", this.mining.address);
 
             // testers approve mining to use their Metis
-            await this.metis.connect(this.alice).approve(this.mining.address, hre.ethers.constants.MaxUint256);
-            await this.metis.connect(this.bob).approve(this.mining.address, hre.ethers.constants.MaxUint256);
-            await this.metis.connect(this.carol).approve(this.mining.address, hre.ethers.constants.MaxUint256);
-            await this.metis.connect(this.daniel).approve(this.mining.address, hre.ethers.constants.MaxUint256);
+            await this.metis.connect(this.alice).approve(this.mining.address, ethers.constants.MaxUint256);
+            await this.metis.connect(this.bob).approve(this.mining.address, ethers.constants.MaxUint256);
+            await this.metis.connect(this.carol).approve(this.mining.address, ethers.constants.MaxUint256);
+            await this.metis.connect(this.daniel).approve(this.mining.address, ethers.constants.MaxUint256);
 
             // invite test users
             await this.dac.addInvitedUsers([
@@ -617,6 +621,33 @@ describe("Mining Contract", function () {
             await this.mining.set(0, 100, true);
             poolInfo = await this.mining.poolInfo(0);
             console.log('set 2', poolInfo);
+        });
+
+        it("test upgradeable dac contract", async function() {
+            await this.dac.connect(this.alice).createDAC(
+                'alice',
+                'introduction',
+                'category',
+                'photo',
+                '2000000000000000000000'
+            );
+            expect(await this.metis.balanceOf(this.alice.address)).to.equal("1000000000000000000000");
+            const aliceDACId = await this.dac.userToDAC(this.alice.address);
+            const aliceInviteCode = await this.dac.DACToInvitationCode(aliceDACId);
+
+            // upgrade dac
+            await upgrades.upgradeProxy(this.dac.address, this.UpgradeableDACFactory);
+            this.upgradedDAC = this.UpgradeableDACFactory.attach(this.dac.address);
+            const aliceDACId2 = await this.upgradedDAC.userToDAC(this.alice.address);
+            const aliceInviteCode2 = await this.upgradedDAC.DACToInvitationCode(aliceDACId);
+            expect(aliceDACId2).to.equal(aliceDACId);
+            expect(aliceInviteCode2).to.equal(aliceInviteCode2);
+            await this.upgradedDAC.connect(this.bob).joinDAC(
+                aliceDACId,
+                '2000000000000000000000',
+                aliceInviteCode
+            );
+            expect(await this.metis.balanceOf(this.bob.address)).to.equal("1000000000000000000000");
         });
     });
 });

@@ -1,5 +1,6 @@
 require("@nomiclabs/hardhat-waffle");
 require("@metis.io/hardhat-mvm");
+require('@openzeppelin/hardhat-upgrades');
 const { config } = require('dotenv');
 const { resolve } = require('path');
 

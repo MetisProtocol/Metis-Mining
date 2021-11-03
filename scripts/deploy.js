@@ -41,7 +41,9 @@ async function main() {
     // const Mining = MiningFactory.attach('0x8F02f857864C357fDD7E8C368ce525dB82C07965');
     console.log('Mining deployed to: ', Mining.address);
 
-    const DAC = await DACFactory.deploy(MetisAddress, Mining.address);
+    const DAC = await hre.upgrades.deployProxy(DACFactory, [MetisAddress, Mining.address], {
+        initializer: "initialize"
+    });
     await DAC.deployed();
     console.log('DAC deployed to: ', DAC.address);
 
