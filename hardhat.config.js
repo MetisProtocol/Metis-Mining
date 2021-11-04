@@ -34,21 +34,25 @@ module.exports = {
   networks: {
     hardhat: {
     },
-    // metis: {
-    //   url: 'https://rocketfuel.metis.io/?owner=435',
-    //   accounts: {
-    //     mnemonic,
-    //   },
-    //   gasPrice: 15000000,
-    //   ovm: true
-    // },
     metis: {
-      url: 'https://dragonfire.metis.io/?owner=488',
+      url: 'https://dev.metis.io/?owner=666',
       accounts: {
         mnemonic,
       },
       gasPrice: 15000000,
-      ovm: false
+    },
+    rinkeby: {
+      url: "https://eth-rinkeby.alchemyapi.io/v2/bB-zVrK3Ss2vb1s5yoEctncbk9fRIm1e",
+      accounts: { mnemonic }
+    }
+  },
+  solidity: {
+    version: "0.6.12",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 9999
+      }
     }
   },
   // ovm: {

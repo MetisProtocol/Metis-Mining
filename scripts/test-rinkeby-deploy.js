@@ -6,39 +6,43 @@ async function main() {
     const signer = accounts[0].address;
     console.log('signer:', signer);
 
-    const MetisAddress = '0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000';
-
+    const MetisFactory = await hre.ethers.getContractFactory('MockMetisToken');
     const DistributorFactory = await hre.ethers.getContractFactory('Distributor');
     const VaultFactory = await hre.ethers.getContractFactory('Vault');
     const MiningFactory = await hre.ethers.getContractFactory('Mining');
     const DACRecorderFactory = await hre.ethers.getContractFactory('DACRecorder');
     const DACFactory = await hre.ethers.getContractFactory('DAC');
 
-    // const Distributor = DistributorFactory.attach('0xb076695f447c1827720Bd51a48130ACd53513908');
-    // if chain is redeployed, redeploy Distributor
-    const Distributor = await DistributorFactory.deploy(MetisAddress);
-    await Distributor.deployed();
+    const Metis = MetisFactory.attach('0x48b4d7b9d6EfC3a29Da6b2B2DA22cD743442e2Df');
+    // const Metis = await MetisFactory.deploy([signer], '100000000000000000000000000');
+    // await Metis.deployed();
+    console.log('Mock Metis deployed to: ', Metis.address);
+    const MetisAddress = Metis.address;
+
+    const Distributor = DistributorFactory.attach('0x1D2dBfb34Dd106288a2fC837C23412eD7f1A6641');
+    // const Distributor = await DistributorFactory.deploy(MetisAddress);
+    // await Distributor.deployed();
     console.log('Distributor deployed to: ', Distributor.address);
 
-    const Vault = await VaultFactory.deploy(MetisAddress, );
-    await Vault.deployed();
-    // const Vault = VaultFactory.attach('0xB9aeb01f1Ed9fE1ffB64C1B74Eeb59D8C4F750dD');
+    // const Vault = await VaultFactory.deploy(MetisAddress, );
+    // await Vault.deployed();
+    const Vault = VaultFactory.attach('0xDF2C1Fcf92Dada2DeC9D1a250Da9A7b1B990dB9B');
     console.log('Vault deployed to: ', Vault.address);
 
-    const DACRecorder = await DACRecorderFactory.deploy(MetisAddress, Vault.address, );
-    await DACRecorder.deployed();
-    // const DACRecorder = DACRecorderFactory.attach('0x13eeA7d016B55F423981232Dc4345a2A98CB335D');
+    // const DACRecorder = await DACRecorderFactory.deploy(MetisAddress, Vault.address, );
+    // await DACRecorder.deployed();
+    const DACRecorder = DACRecorderFactory.attach('0x2C1422FB645F94c7e7dd3EcC08FFd271453f0CCc');
     console.log('DACRecorder deployed to: ', DACRecorder.address);
 
-    const Mining = await MiningFactory.deploy(
-        MetisAddress,
-        DACRecorder.address,
-        Distributor.address,
-        '18500000000000000',
-        1636017645,
-    );
-    await Mining.deployed();
-    // const Mining = MiningFactory.attach('0x3B00912495b52c18324691695DDB015eF8a32195');
+    // const Mining = await MiningFactory.deploy(
+    //     MetisAddress,
+    //     DACRecorder.address,
+    //     Distributor.address,
+    //     '18500000000000000',
+    //     1636017645,
+    // );
+    // await Mining.deployed();
+    const Mining = MiningFactory.attach('0x648dE61413eFf80Df78c684B2352C8D596A7Ce50');
     console.log('Mining deployed to: ', Mining.address);
 
     const DAC = await hre.upgrades.deployProxy(DACFactory, [MetisAddress, Mining.address], {
@@ -58,7 +62,7 @@ async function main() {
 
     console.log(addresses);
 
-    fs.writeFileSync(`${__dirname}/addresses2.json`, JSON.stringify(addresses, null, 4));
+    fs.writeFileSync(`${__dirname}/addresses-rinkeby.json`, JSON.stringify(addresses, null, 4));
 }
 
 // We recommend this pattern to be able to use async/await everywhere

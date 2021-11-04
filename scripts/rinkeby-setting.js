@@ -1,36 +1,38 @@
 const hre = require('hardhat');
 const fs = require('fs');
-// const addresses = require('./addresses.json');
-const addresses = require('./addresses2.json');
+const addresses = require('./addresses-rinkeby.json');
 
 async function main() {
     const accounts = await ethers.getSigners();
     const signer = accounts[0].address;
     console.log('signer:', signer);
 
-    const MetisAddress = '0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000';
-
+    const MetisFactory = await hre.ethers.getContractFactory('MockMetisToken');
     const DistributorFactory = await hre.ethers.getContractFactory('Distributor');
     const VaultFactory = await hre.ethers.getContractFactory('Vault');
     const MiningFactory = await hre.ethers.getContractFactory('Mining');
     const DACRecorderFactory = await hre.ethers.getContractFactory('DACRecorder');
     const DACFactory = await hre.ethers.getContractFactory('DAC');
 
+    const Metis = MetisFactory.attach(addresses.MetisAddress);
+    const MetisAddress = Metis.address;
     const Distributor = DistributorFactory.attach(addresses.Distributor);
     const Vault = VaultFactory.attach(addresses.Vault);
     const DACRecorder = DACRecorderFactory.attach(addresses.DACRecorder);
     const Mining = MiningFactory.attach(addresses.Mining);
     const DAC = DACFactory.attach(addresses.DAC);
 
+    // Mint 10000 Metis to signer
+    await Metis.mint(signer, '10000000000000000000000');
+    console.log('Mint 10000 Metis to signer');
     // set Mining contract for Distributor
     await Distributor.setMiningContract(Mining.address);
     console.log('Set Mining contract for Distributor');
     // set Mining contract for DACRecorder
     await DACRecorder.setMiningContract(Mining.address);
-    console.log('Set Mining contract for DACRecorder');
     // set DAC contract for DACRecorder
     await DACRecorder.setMetisDAC(DAC.address);
-    console.log('Set DAC contract for DACRecorder');
+    console.log('Set Mining contract for DACRecorder');
     // set DACRecorder for Vault
     await Vault.setDACRecorder(DACRecorder.address);
     console.log('Set DACRecorder contract for Vault');

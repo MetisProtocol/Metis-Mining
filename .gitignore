@@ -6,3 +6,4 @@ artifacts
 .env
 artifacts-ovm
 cache-ovm
+.openzeppelin/*

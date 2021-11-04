@@ -1165,6 +1165,15 @@ contract DAC is IDAC, AccessControlUpgradeable, OwnableUpgradeable {
         emit UpdatedWhitelist(user, amount);
     }
 
+    function batchUpdateWhitelist(address[] memory users, uint256[] memory amounts) public onlyRole(WHITELIST_ROLE) {
+        require(users.length == amounts.length, "mismatch length");
+        for (uint256 index = 0; index < users.length; index++) {
+            require(!_userExist(users[index]), "user exist");
+            whitelist[users[index]] = amounts[index];
+            emit UpdatedWhitelist(users[index], amounts[index]);
+        }
+    }
+
     /**
     * @dev query initialPower
     */

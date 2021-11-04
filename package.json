@@ -7,7 +7,9 @@
     "test": "hardhat test",
     "compile": "hardhat compile",
     "deploy": "hardhat run scripts/deploy.js --network metis",
+    "deploy-rinkeby": "hardhat run scripts/test-rinkeby-deploy.js --network rinkeby",
     "setting": "hardhat run scripts/settings.js --network metis",
+    "setting-rinkeby": "hardhat run scripts/rinkeby-setting.js --network rinkeby",
     "invite": "npx hardhat run ./scripts/add-invited-users.js --network metis"
   },
   "license": "MIT",

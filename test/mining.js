@@ -81,6 +81,7 @@ describe("Mining Contract", function () {
             await this.dac.setRoleAdmin("0x61646d696e000000000000000000000000000000000000000000000000000000", "0x61646d696e000000000000000000000000000000000000000000000000000000");
             // set `MINING_ROLE` admin role
             await this.dac.setRoleAdmin("0x6d696e696e670000000000000000000000000000000000000000000000000000", "0x61646d696e000000000000000000000000000000000000000000000000000000");
+            await this.dac.setRoleAdmin("0x77686974656c6973740000000000000000000000000000000000000000000000", "0x61646d696e000000000000000000000000000000000000000000000000000000");
             await this.dac.grantRole("0x6d696e696e670000000000000000000000000000000000000000000000000000", this.mining.address);
 
             // testers approve mining to use their Metis
@@ -649,5 +650,12 @@ describe("Mining Contract", function () {
             );
             expect(await this.metis.balanceOf(this.bob.address)).to.equal("1000000000000000000000");
         });
+
+        it("test batch update whitelist of dac contract", async function() {
+            await this.dac.grantRole("0x77686974656c6973740000000000000000000000000000000000000000000000", this.minter.address);
+            await this.dac.connect(this.minter).batchUpdateWhitelist([this.alice.address, this.bob.address], [100, 90]);
+            expect(await this.dac.queryInitialPower(this.alice.address)).to.equal(100);
+            expect(await this.dac.queryInitialPower(this.bob.address)).to.equal(90);
+        })
     });
 });
