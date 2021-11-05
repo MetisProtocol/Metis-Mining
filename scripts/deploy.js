@@ -14,10 +14,10 @@ async function main() {
     const DACRecorderFactory = await hre.ethers.getContractFactory('DACRecorder');
     const DACFactory = await hre.ethers.getContractFactory('DAC');
 
-    // const Distributor = DistributorFactory.attach('0xb076695f447c1827720Bd51a48130ACd53513908');
+    const Distributor = DistributorFactory.attach('0x9370e53469345E74623c77995C1c1bc8B1b791F5');
     // if chain is redeployed, redeploy Distributor
-    const Distributor = await DistributorFactory.deploy(MetisAddress);
-    await Distributor.deployed();
+    // const Distributor = await DistributorFactory.deploy(MetisAddress);
+    // await Distributor.deployed();
     console.log('Distributor deployed to: ', Distributor.address);
 
     const Vault = await VaultFactory.deploy(MetisAddress, );
