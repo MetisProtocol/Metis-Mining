@@ -242,7 +242,9 @@ contract Mining is Ownable, IMining {
                 );
                 // means that the member leave a specific DAC
                 if (remainingAmount == 0) {
-                    _sendPending(_pid, _creator, dacState, accMetisPerShare);
+                    if (dacState == IDACRecorder.DACState.Active) {
+                        _sendPending(_pid, _creator, dacState, accMetisPerShare);
+                    }
                     DAC.memberLeaveDAC(_dacId, msg.sender);
                     DACRecorder.updateMemberInfo(msg.sender, _dacId, remainingAmount, true, false);
                     DACRecorder.delMember(_dacId, msg.sender);
