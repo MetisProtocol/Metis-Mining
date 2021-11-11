@@ -34,12 +34,19 @@ module.exports = {
   networks: {
     hardhat: {
     },
+    // metis: {
+    //   url: 'https://dev.metis.io/?owner=666',
+    //   accounts: {
+    //     mnemonic,
+    //   },
+    //   gasPrice: 15000000,
+    // },
     metis: {
-      url: 'https://dev.metis.io/?owner=666',
+      url: 'https://stardust.metis.io/?owner=588',
       accounts: {
         mnemonic,
       },
-      gasPrice: 15000000,
+      gasPrice: 1000000000,
     },
     rinkeby: {
       url: "https://eth-rinkeby.alchemyapi.io/v2/bB-zVrK3Ss2vb1s5yoEctncbk9fRIm1e",

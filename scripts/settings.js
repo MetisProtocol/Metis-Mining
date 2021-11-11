@@ -1,7 +1,8 @@
 const hre = require('hardhat');
 const fs = require('fs');
 // const addresses = require('./addresses.json');
-const addresses = require('./addresses2.json');
+// const addresses = require('./addresses2.json');
+const addresses = require('./addresses-588.json');
 
 async function main() {
     const accounts = await ethers.getSigners();
