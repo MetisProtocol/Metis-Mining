@@ -976,6 +976,7 @@ contract DAC is IDAC, AccessControlUpgradeable, OwnableUpgradeable {
     mapping(bytes32 => uint256) public invitationCodeToDAC;
     mapping(uint256 => bytes32) public DACToInvitationCode;
     mapping(address => bool) public isInvitedUser;
+    mapping(bytes32 => bool) public isDacNameExist;
     uint256 public DISMISS_LIMIT;
     uint256 public MIN_DEPOSIT;
     uint256 public MAX_DEPOSIT;
@@ -1007,6 +1008,7 @@ contract DAC is IDAC, AccessControlUpgradeable, OwnableUpgradeable {
         if (onlyInvitedUser) {
             require(isInvitedUser[_msgSender()], "not invited");
         }
+        require(!isDacNameExist[keccak256(abi.encode(name))], "dac name repeat");
         require(!_userExist(_msgSender()), "user exist");
         require(!(amount < MIN_DEPOSIT || amount > MAX_DEPOSIT), "amount not allowed");
         require(Metis.allowance(_msgSender(), address(MiningContract)) >= amount, "Not enough allowance for mining contract");   // check balance
@@ -1194,6 +1196,7 @@ contract DAC is IDAC, AccessControlUpgradeable, OwnableUpgradeable {
         userToDAC[creator] = newDac.id;
         invitationCodeToDAC[invitationCode] = newDac.id;
         DACToInvitationCode[newDac.id] = invitationCode;
+        isDacNameExist[keccak256(abi.encode(name))] = true;
         emit CreatedDAC(creator, newDac.id, invitationCode);
     }
 
