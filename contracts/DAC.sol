@@ -1075,7 +1075,7 @@ contract DAC is IDAC, AccessControlUpgradeable, OwnableUpgradeable {
     * `to`  when creator increase deposit this param must be address(0).
     */
     function increaseDeposit(uint256 dacId, address to, uint256 amount) public override onlyEffectiveDAC(dacId) returns(bool){
-        require(_userExist(_msgSender()), "not allowed");
+        require(_dacCorrectly(dacId), "not allowed");
         require(Metis.allowance(_msgSender(), address(MiningContract)) >= amount, "Not enough allowance for mining contract");  // check allowance
         _deposit(to, _msgSender(), amount, dacId);     // deposit
         emit IncreasedDeposit(dacId, to, _msgSender(), amount);
@@ -1227,6 +1227,16 @@ contract DAC is IDAC, AccessControlUpgradeable, OwnableUpgradeable {
         if (pool[userToDAC[user]].state == DACState.Dismissed){
             return false;
         }
+        return true;
+    }
+
+    /**
+    * @dev dacId
+    */
+
+    function _dacCorrectly(uint256 dacId) public view returns(bool){
+        require(_userExist(_msgSender), "not allowed");
+        require(dacId == userToDAC[_msgSender()], "dac not match");
         return true;
     }
 
