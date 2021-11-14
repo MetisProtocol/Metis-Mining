@@ -1075,6 +1075,7 @@ contract DAC is IDAC, AccessControlUpgradeable, OwnableUpgradeable {
     * `to`  when creator increase deposit this param must be address(0).
     */
     function increaseDeposit(uint256 dacId, address to, uint256 amount) public override onlyEffectiveDAC(dacId) returns(bool){
+        require(_userExist(_msgSender()), "not allowed");
         require(Metis.allowance(_msgSender(), address(MiningContract)) >= amount, "Not enough allowance for mining contract");  // check allowance
         _deposit(to, _msgSender(), amount, dacId);     // deposit
         emit IncreasedDeposit(dacId, to, _msgSender(), amount);
