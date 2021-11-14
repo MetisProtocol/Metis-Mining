@@ -14,10 +14,10 @@ async function main() {
     const DACRecorderFactory = await hre.ethers.getContractFactory('DACRecorder');
     const DACFactory = await hre.ethers.getContractFactory('DAC');
 
-    const Distributor = DistributorFactory.attach('0x4F2185589C43ab8e0Ff91E6bbA9921414eDE8Eae');
+    // const Distributor = DistributorFactory.attach('0x4F2185589C43ab8e0Ff91E6bbA9921414eDE8Eae');
     // if chain is redeployed, redeploy Distributor
-    // const Distributor = await DistributorFactory.deploy(MetisAddress);
-    // await Distributor.deployed();
+    const Distributor = await DistributorFactory.deploy(MetisAddress);
+    await Distributor.deployed();
     console.log('Distributor deployed to: ', Distributor.address);
 
     const Vault = await VaultFactory.deploy(MetisAddress, );
@@ -35,7 +35,7 @@ async function main() {
         DACRecorder.address,
         Distributor.address,
         '18500000000000000',
-        1636017645,
+        1636833600,
     );
     await Mining.deployed();
     // const Mining = MiningFactory.attach('0x3B00912495b52c18324691695DDB015eF8a32195');
@@ -58,7 +58,7 @@ async function main() {
 
     console.log(addresses);
 
-    fs.writeFileSync(`${__dirname}/addresses-588.json`, JSON.stringify(addresses, null, 4));
+    fs.writeFileSync(`${__dirname}/addresses-588-public.json`, JSON.stringify(addresses, null, 4));
 }
 
 // We recommend this pattern to be able to use async/await everywhere

@@ -104,6 +104,9 @@ contract Mining is Ownable, IMining {
         uint256 totalWeight = DACRecorder.totalWeight();
         if (dacState == IDACRecorder.DACState.Active && _currentTime > pool.lastRewardTimestamp && totalWeight != 0) {
             (,uint256 MetisReward) = calcMetisReward(_currentTime, pool.lastRewardTimestamp, pool.allocPoint);
+            if(Metis.balanceOf(address(distributor)) < MetisReward) {
+                MetisReward = Metis.balanceOf(address(distributor));
+            }
             share = share.add(MetisReward.mul(1e18).div(totalWeight));
         }
         uint256 _userWeight = DACRecorder.userWeight(_user);
@@ -123,9 +126,9 @@ contract Mining is Ownable, IMining {
     // Update reward variables of the given pool to be up-to-date.
     function updatePool(uint256 _pid) public {
         PoolInfo storage pool = poolInfo[_pid];
-        // if (block.timestamp <= pool.lastRewardTimestamp) {
-        //     return;
-        // }
+        if (block.timestamp <= pool.lastRewardTimestamp) {
+            return;
+        }
         uint256 totalWeight = DACRecorder.totalWeight();
         if (totalWeight == 0) {
             pool.lastRewardTimestamp = block.timestamp;
