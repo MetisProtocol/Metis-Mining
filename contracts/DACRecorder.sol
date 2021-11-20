@@ -54,7 +54,7 @@ contract DACRecorder is Ownable, IDACRecorder {
     uint256 public POWER_STEP_SIZE = 5; 
     uint256 public INITIAL_POWER_STEP_SIZE = 10;
     uint256 public MEMBER_POWER = 80;
-    uint256 public override MIN_MEMBER_COUNT = 10;
+    uint256 public override MIN_MEMBER_COUNT = 20;
     uint256 public override stakedMetis;
     bool public override DAO_OPEN;
 

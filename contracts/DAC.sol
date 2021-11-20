@@ -989,7 +989,7 @@ contract DAC is IDAC, AccessControlUpgradeable, OwnableUpgradeable {
         __Ownable_init();
         Metis = metis;
         MiningContract = miningContract;
-        DISMISS_LIMIT = 10;
+        DISMISS_LIMIT = 20;
         MIN_DEPOSIT = 10 * 1e18;
         MAX_DEPOSIT = 2000 * 1e18;
         onlyInvitedUser = true;
@@ -1059,7 +1059,7 @@ contract DAC is IDAC, AccessControlUpgradeable, OwnableUpgradeable {
     * @dev dismissed DAC
     */
     function dismissDAC(uint256 dacId, address creator) public override onlyRole(MINING_ROLE) onlyEffectiveDAC(dacId) onlyCorrectlyCreator(dacId, creator) returns(bool) {
-        require(relations[dacId].length() <= DISMISS_LIMIT, "not allowed dismissed");   // member count <= 10
+        require(relations[dacId].length() <= DISMISS_LIMIT, "not allowed dismissed");   // member count <= 20
         DACInfo storage dac = pool[dacId];
         dac.state = DACState.Dismissed;
         userToDAC[creator] = 0;
