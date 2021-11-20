@@ -1219,10 +1219,6 @@ contract DAC is IDAC, AccessControlUpgradeable, OwnableUpgradeable {
         if (userToDAC[user] == 0) {
             return false;
         }
-        // user was forceleft the DAC
-        if (pool[userToDAC[user]].state == DACState.Dismissed){
-            return false;
-        }
         return true;
     }
 
