@@ -976,6 +976,7 @@ contract DAC is IDAC, AccessControlUpgradeable, OwnableUpgradeable {
     mapping(bytes32 => uint256) public invitationCodeToDAC;
     mapping(uint256 => bytes32) public DACToInvitationCode;
     mapping(address => bool) public isInvitedUser;
+    mapping(bytes32 => bool) public isDacNameExist;
     uint256 public DISMISS_LIMIT;
     uint256 public MIN_DEPOSIT;
     uint256 public MAX_DEPOSIT;
@@ -1007,6 +1008,7 @@ contract DAC is IDAC, AccessControlUpgradeable, OwnableUpgradeable {
         if (onlyInvitedUser) {
             require(isInvitedUser[_msgSender()], "not invited");
         }
+        require(!isDacNameExist[keccak256(abi.encode(name))], "dac name repeat");
         require(!_userExist(_msgSender()), "user exist");
         require(!(amount < MIN_DEPOSIT || amount > MAX_DEPOSIT), "amount not allowed");
         require(Metis.allowance(_msgSender(), address(MiningContract)) >= amount, "Not enough allowance for mining contract");   // check balance
@@ -1073,6 +1075,7 @@ contract DAC is IDAC, AccessControlUpgradeable, OwnableUpgradeable {
     * `to`  when creator increase deposit this param must be address(0).
     */
     function increaseDeposit(uint256 dacId, address to, uint256 amount) public override onlyEffectiveDAC(dacId) returns(bool){
+        require(_dacCorrectly(dacId), "not allowed");
         require(Metis.allowance(_msgSender(), address(MiningContract)) >= amount, "Not enough allowance for mining contract");  // check allowance
         _deposit(to, _msgSender(), amount, dacId);     // deposit
         emit IncreasedDeposit(dacId, to, _msgSender(), amount);
@@ -1194,6 +1197,7 @@ contract DAC is IDAC, AccessControlUpgradeable, OwnableUpgradeable {
         userToDAC[creator] = newDac.id;
         invitationCodeToDAC[invitationCode] = newDac.id;
         DACToInvitationCode[newDac.id] = invitationCode;
+        isDacNameExist[keccak256(abi.encode(name))] = true;
         emit CreatedDAC(creator, newDac.id, invitationCode);
     }
 
@@ -1219,6 +1223,16 @@ contract DAC is IDAC, AccessControlUpgradeable, OwnableUpgradeable {
         if (userToDAC[user] == 0) {
             return false;
         }
+        return true;
+    }
+
+    /**
+    * @dev dacId
+    */
+
+    function _dacCorrectly(uint256 dacId) public view returns(bool){
+        require(_userExist(_msgSender), "not allowed");
+        require(dacId == userToDAC[_msgSender()], "dac not match");
         return true;
     }
 

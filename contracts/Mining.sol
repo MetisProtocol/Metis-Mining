@@ -123,9 +123,9 @@ contract Mining is Ownable, IMining {
     // Update reward variables of the given pool to be up-to-date.
     function updatePool(uint256 _pid) public {
         PoolInfo storage pool = poolInfo[_pid];
-        if (block.timestamp <= pool.lastRewardTimestamp) {
-            return;
-        }
+        // if (block.timestamp <= pool.lastRewardTimestamp) {
+        //     return;
+        // }
         uint256 totalWeight = DACRecorder.totalWeight();
         if (totalWeight == 0) {
             pool.lastRewardTimestamp = block.timestamp;
@@ -302,8 +302,8 @@ contract Mining is Ownable, IMining {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage creator = userInfo[_pid][_creator];
         if (creator.amount > 0) {
-            (, uint256 creatorAccPower,) = DACRecorder.checkUserInfo(_creator);
-            creator.rewardDebt = creator.amount.mul(creatorAccPower).mul(pool.accMetisPerShare).div(1e18);
+            uint256 _creatorWeight = DACRecorder.userWeight(_creator);
+            creator.rewardDebt = _creatorWeight.mul(pool.accMetisPerShare).div(1e18);
         }
     }
 

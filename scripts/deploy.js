@@ -14,7 +14,7 @@ async function main() {
     const DACRecorderFactory = await hre.ethers.getContractFactory('DACRecorder');
     const DACFactory = await hre.ethers.getContractFactory('DAC');
 
-    const Distributor = DistributorFactory.attach('0x9370e53469345E74623c77995C1c1bc8B1b791F5');
+    const Distributor = DistributorFactory.attach('0x4F2185589C43ab8e0Ff91E6bbA9921414eDE8Eae');
     // if chain is redeployed, redeploy Distributor
     // const Distributor = await DistributorFactory.deploy(MetisAddress);
     // await Distributor.deployed();
@@ -58,7 +58,7 @@ async function main() {
 
     console.log(addresses);
 
-    fs.writeFileSync(`${__dirname}/addresses2.json`, JSON.stringify(addresses, null, 4));
+    fs.writeFileSync(`${__dirname}/addresses-588.json`, JSON.stringify(addresses, null, 4));
 }
 
 // We recommend this pattern to be able to use async/await everywhere
