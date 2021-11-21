@@ -1231,7 +1231,7 @@ contract DAC is IDAC, AccessControlUpgradeable, OwnableUpgradeable {
     */
 
     function _dacCorrectly(uint256 dacId) public view returns(bool){
-        require(_userExist(_msgSender), "not allowed");
+        require(_userExist(_msgSender()), "not allowed");
         require(dacId == userToDAC[_msgSender()], "dac not match");
         return true;
     }
