@@ -688,5 +688,46 @@ describe("Mining Contract", function () {
             expect(await this.dac.queryInitialPower(this.alice.address)).to.equal(100);
             expect(await this.dac.queryInitialPower(this.bob.address)).to.equal(90);
         })
+
+        it("test emergency withdraw", async function() {
+            await this.dac.connect(this.alice).createDAC(
+                'alice',
+                'introduction',
+                'category',
+                'photo',
+                '2000000000000000000000'
+            );
+            expect(await this.metis.balanceOf(this.alice.address)).to.equal("1000000000000000000000");
+            await TimeHelper.advanceTimeAndBlock(100);
+            await this.mining.setPaused(true);
+            await this.mining.connect(this.alice).emergencyWithdraw(0);
+            expect(await this.metis.balanceOf(this.alice.address)).to.equal("3000000000000000000000");
+        });
+
+        it("test withdrawLastReward of vault", async function() {
+            await this.dac.connect(this.alice).createDAC(
+                'alice',
+                'introduction',
+                'category',
+                'photo',
+                '2000000000000000000000'
+            );
+            expect(await this.metis.balanceOf(this.alice.address)).to.equal("1000000000000000000000");
+            await TimeHelper.advanceTimeAndBlock(100);
+            await this.mining.connect(this.alice).withdraw(
+                ADDRESS_ZERO,
+                '0',
+                '0',
+            );
+            const aliceShare = await this.vault.shares(this.alice.address);
+            await this.vault.connect(this.alice).leave(aliceShare);
+            const vaultBal = await this.metis.balanceOf(this.vault.address);
+            const minterBal = await this.metis.balanceOf(this.minter.address);
+            await this.vault.connect(this.minter).withdrawLastReward(this.minter.address);
+            const vaultBal2 = await this.metis.balanceOf(this.vault.address);
+            expect(vaultBal2).to.equal(0);
+            const minterBal2 = await this.metis.balanceOf(this.minter.address);
+            expect(minterBal2).to.equal(vaultBal.add(minterBal));
+        });
     });
 });

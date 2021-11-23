@@ -976,6 +976,7 @@ contract MockUpgradeableDAC is IDAC, AccessControlUpgradeable, OwnableUpgradeabl
     mapping(bytes32 => uint256) public invitationCodeToDAC;
     mapping(uint256 => bytes32) public DACToInvitationCode;
     mapping(address => bool) public isInvitedUser;
+    mapping(bytes32 => bool) public isDacNameExist;
     uint256 public DISMISS_LIMIT;
     uint256 public MIN_DEPOSIT;
     uint256 public MAX_DEPOSIT;

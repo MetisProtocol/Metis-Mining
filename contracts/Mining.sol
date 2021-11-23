@@ -56,6 +56,7 @@ contract Mining is Ownable, IMining {
     uint256 public startTimestamp;
     uint256 public MIN_DEPOSIT = 10 * 1e18;
     uint256 public MAX_DEPOSIT = 2000 * 1e18;
+    bool public paused = false;
 
     /* ========== CONSTRUCTOR ========== */
 
@@ -152,7 +153,7 @@ contract Mining is Ownable, IMining {
         uint256 _pid, 
         uint256 _amount,
         uint256 _dacId
-    ) onlyDAC external override returns (bool) {
+    ) onlyDAC notPaused external override returns (bool) {
         bool isCreator = _creator == address(0);
         address existedCreator = DACRecorder.creatorOf(_user);
         (IDACRecorder.DACState dacState,,uint256 accMetisPerShare,,) = DACRecorder.checkDACInfo(_dacId);
@@ -207,7 +208,7 @@ contract Mining is Ownable, IMining {
         address _creator, 
         uint256 _pid, 
         uint256 _amount
-    ) external override returns (bool) {
+    ) notPaused external override returns (bool) {
         uint256 _dacId = DAC.userToDAC(msg.sender);
         bool isCreator = _creator == address(0);
         if (!isCreator) {
@@ -270,7 +271,7 @@ contract Mining is Ownable, IMining {
         return true;
     }
 
-    function dismissDAC(uint256 _dacId, uint256 _pid, address _creator) onlyDAC external override returns (bool) {
+    function dismissDAC(uint256 _dacId, uint256 _pid, address _creator) onlyDAC notPaused external override returns (bool) {
         require(DACRecorder.DAO_OPEN(), "DAO is not opened");
         require(DACRecorder.isCreator(_creator), "not a creator");
         PoolInfo storage pool = poolInfo[_pid];
@@ -283,6 +284,17 @@ contract Mining is Ownable, IMining {
         IERC20(pool.token).safeTransfer(_creator, creator.amount);
         creator.amount = 0;
         return true;
+    }
+
+    // Withdraw without caring about rewards and DAC data when paused. EMERGENCY ONLY.
+    function emergencyWithdraw(uint256 _pid) public {
+        require(paused, 'not paused');
+        PoolInfo storage pool = poolInfo[_pid];
+        UserInfo storage user = userInfo[_pid][msg.sender];
+        IERC20(pool.token).safeTransfer(address(msg.sender), user.amount);
+        emit EmergencyWithdraw(msg.sender, _pid, user.amount);
+        user.amount = 0;
+        user.rewardDebt = 0;
     }
 
     /* ========== INTERNAL FUNCTIONS ========== */
@@ -393,6 +405,10 @@ contract Mining is Ownable, IMining {
         emit TeamAddrChanged(_teamAddr);
     }
 
+    function setPaused(bool _paused) external onlyOwner {
+        paused = _paused;
+    }
+
     /* ========== MODIFIERS ========== */
 
     modifier onlyDAC() {
@@ -402,6 +418,11 @@ contract Mining is Ownable, IMining {
 
     modifier onlySetter() {
         require(msg.sender == setter, "not setter");
+        _;
+    }
+
+    modifier notPaused() {
+        require(!paused, 'paused');
         _;
     }
 
@@ -415,4 +436,5 @@ contract Mining is Ownable, IMining {
     event MinDepositChanged(uint256 newMin);
     event MaxDepositChanged(uint256 newMax);
     event MetisPerSecondChanged(uint256 newPerSecond);
+    event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
 }

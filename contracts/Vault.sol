@@ -95,6 +95,12 @@ contract Vault {
         IERC20(_token).safeTransfer(governance, _balance);
     }
 
+    // Withdraw last reward when everyone leave by gov
+    function withdrawLastReward(address _to) external onlyGov {
+        require(totalShares == 0, "still working");
+        metisToken.safeTransfer(_to, metisToken.balanceOf(address(this)));
+    }
+
     /* ========== MODIFIERS ========== */
 
     modifier onlyGov() {
