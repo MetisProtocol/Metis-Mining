@@ -10,7 +10,9 @@
     "deploy-rinkeby": "hardhat run scripts/test-rinkeby-deploy.js --network rinkeby",
     "setting": "hardhat run scripts/settings.js --network metis",
     "setting-rinkeby": "hardhat run scripts/rinkeby-setting.js --network rinkeby",
-    "invite": "npx hardhat run ./scripts/add-invited-users.js --network metis"
+    "invite": "npx hardhat run ./scripts/add-invited-users.js --network metis",
+    "launch": "hardhat run scripts/deploy.js --network mainnet",
+    "launch-setting": "hardhat run scripts/settings.js --network mainnet"
   },
   "license": "MIT",
   "devDependencies": {

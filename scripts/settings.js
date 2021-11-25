@@ -3,7 +3,7 @@ const fs = require('fs');
 // const addresses = require('./addresses.json');
 // const addresses = require('./addresses2.json');
 // const addresses = require('./addresses-588.json');
-const addresses = require('./addresses-588-public.json');
+const addresses = require('./addresses-1088-test.json');
 
 async function main() {
     const accounts = await ethers.getSigners();
@@ -55,7 +55,7 @@ async function main() {
     await DAC.grantRole("0x6d696e696e670000000000000000000000000000000000000000000000000000", Mining.address);
     console.log('grant `MINING_ROLE` to `MiningAddr`')
     // grant `WHITELIST_ROLE` to `WhitelistAccount`
-    await DAC.grantRole("0x77686974656c6973740000000000000000000000000000000000000000000000", '0xFe7A0Ea1662A75771b0122853C4aEaCA7CE55460')
+    await DAC.grantRole("0x77686974656c6973740000000000000000000000000000000000000000000000", '0x9573765B2F260Da3C5DBf289fFB04789C138B28c')
     console.log('grant `WHITELIST_ROLE` to `WhitelistAccount`')
 }
 

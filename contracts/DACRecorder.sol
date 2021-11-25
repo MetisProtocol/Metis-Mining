@@ -21,6 +21,7 @@ contract DACRecorder is Ownable, IDACRecorder {
         uint256 userCount; // How many users this DAC has
         uint256 accMetisPerShare; // When state is set to inactive, save pool.accMetisPerShare
         uint256 initialDACPower;
+        uint256 accDACWeight;
         address creator;
         EnumerableSet.AddressSet members;
     }
@@ -163,8 +164,8 @@ contract DACRecorder is Ownable, IDACRecorder {
         require(dac.state == DACState.Active, "This DAC is inactive");
 
         if (_withdrawAll) {
-            // creator withdraw all => dismiss DAC
-            totalWeight = totalWeight.sub(userWeight[_user]);
+            // creator withdraw all => dismiss DAC, sub accDACWeight of dac
+            totalWeight = totalWeight.sub(dac.accDACWeight);
             stakedMetis = stakedMetis.sub(user.amount);
             user.amount = _amount;
             user.userRole = Role.None;
@@ -186,9 +187,11 @@ contract DACRecorder is Ownable, IDACRecorder {
             dac.creator = _user;
             dac.initialDACPower = _initialDACPower;
             // update weight info
+            dac.accDACWeight = dac.accDACWeight.sub(userWeight[_user]);
             totalWeight = totalWeight.sub(userWeight[_user]);
             userWeight[_user] = user.accPower.mul(_amount);
             totalWeight = totalWeight.add(userWeight[_user]);
+            dac.accDACWeight = dac.accDACWeight.add(userWeight[_user]);
         }
         return true;
     }
@@ -209,7 +212,10 @@ contract DACRecorder is Ownable, IDACRecorder {
         require(dac.members.contains(_user), "This user is not included in this DAC");
 
         if (_withdrawAll) {
-            totalWeight = totalWeight.sub(userWeight[_user]);
+            // only active dac will influence total weight
+            if (dac.state == DACState.Active) {
+                totalWeight = totalWeight.sub(userWeight[_user]);
+            }
             stakedMetis = stakedMetis.sub(user.amount);
             user.amount = _amount;
             user.userRole = Role.None;
@@ -229,13 +235,20 @@ contract DACRecorder is Ownable, IDACRecorder {
             stakedMetis = stakedMetis.sub(user.amount);
             user.amount = _amount;
             stakedMetis = stakedMetis.add(user.amount);
-            userWeight[_user] = user.accPower.mul(_amount);
-            totalWeight = totalWeight.add(userWeight[_user]);
-            if (creator.accPower > 0) {
+            // only active dac will influence total weight
+            if (dac.state == DACState.Active) {
+                dac.accDACWeight = dac.accDACWeight.sub(userWeight[_user]);
+                totalWeight = totalWeight.sub(userWeight[_user]);
+                userWeight[_user] = user.accPower.mul(_amount);
+                totalWeight = totalWeight.add(userWeight[_user]);
+                dac.accDACWeight = dac.accDACWeight.add(userWeight[_user]);
+                // update creator accPower
                 creator.accPower = _calcAccPowerForCreator(_initialDACPower, _DACMemberCount);
                 totalWeight = totalWeight.sub(userWeight[dac.creator]);
+                dac.accDACWeight = dac.accDACWeight.sub(userWeight[dac.creator]);
                 userWeight[dac.creator] = creator.accPower.mul(creator.amount);
                 totalWeight = totalWeight.add(userWeight[dac.creator]);
+                dac.accDACWeight = dac.accDACWeight.add(userWeight[dac.creator]);
             }
         }
         return true;

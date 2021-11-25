@@ -34,13 +34,12 @@ module.exports = {
   networks: {
     hardhat: {
     },
-    // metis: {
-    //   url: 'https://dev.metis.io/?owner=666',
-    //   accounts: {
-    //     mnemonic,
-    //   },
-    //   gasPrice: 15000000,
-    // },
+    mainnet: {
+      url: 'https://andromeda.metis.io/?owner=1088',
+      accounts: {
+        mnemonic,
+      }
+    },
     metis: {
       url: 'https://stardust.metis.io/?owner=588',
       accounts: {

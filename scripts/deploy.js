@@ -34,8 +34,9 @@ async function main() {
         MetisAddress,
         DACRecorder.address,
         Distributor.address,
-        '18500000000000000',
-        1636833600,
+        '1000000000000000',
+        // '18500000000000000',
+        1637767800,
     );
     await Mining.deployed();
     // const Mining = MiningFactory.attach('0x3B00912495b52c18324691695DDB015eF8a32195');
@@ -58,7 +59,7 @@ async function main() {
 
     console.log(addresses);
 
-    fs.writeFileSync(`${__dirname}/addresses-588-public.json`, JSON.stringify(addresses, null, 4));
+    fs.writeFileSync(`${__dirname}/addresses-1088-test.json`, JSON.stringify(addresses, null, 4));
 }
 
 // We recommend this pattern to be able to use async/await everywhere

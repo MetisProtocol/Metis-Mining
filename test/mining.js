@@ -729,5 +729,71 @@ describe("Mining Contract", function () {
             const minterBal2 = await this.metis.balanceOf(this.minter.address);
             expect(minterBal2).to.equal(vaultBal.add(minterBal));
         });
+
+        it("test dismiss logic", async function() {
+            // alice create
+            await this.dac.connect(this.alice).createDAC(
+                'alice',
+                'introduction',
+                'category',
+                'photo',
+                '2000000000000000000000'
+            );
+            expect(await this.metis.balanceOf(this.alice.address)).to.equal("1000000000000000000000");
+            const aliceDACId = await this.dac.userToDAC(this.alice.address);
+            const aliceInviteCode = await this.dac.DACToInvitationCode(aliceDACId);
+            // bob join alice
+            await this.dac.connect(this.bob).joinDAC(
+                aliceDACId,
+                '2000000000000000000000',
+                aliceInviteCode
+            );
+            // carol create
+            await this.dac.connect(this.carol).createDAC(
+                'carol',
+                'introduction',
+                'category',
+                'photo',
+                '2000000000000000000000'
+            );
+            await TimeHelper.advanceTimeAndBlock(100);
+            let latestTime = await TimeHelper.latestBlockTimestamp();
+            let bobPending = await this.mining.pendingMetis(latestTime, 0, this.bob.address);
+            console.log('bob pending 1 before alice dismiss', bobPending.toString());
+            let carolPending = await this.mining.pendingMetis(latestTime, 0, this.carol.address);
+            console.log('carol pending 1 before alice dismiss', carolPending.toString());
+            // alice dismiss
+            await this.mining.connect(this.alice).withdraw(
+                ADDRESS_ZERO,
+                '0',
+                '2000000000000000000000',
+            );
+            await TimeHelper.advanceTimeAndBlock(1);
+            latestTime = await TimeHelper.latestBlockTimestamp();
+            bobPending = await this.mining.pendingMetis(latestTime, 0, this.bob.address);
+            console.log('bob pending 2 after alice dismiss', bobPending.toString());
+            carolPending = await this.mining.pendingMetis(latestTime, 0, this.carol.address);
+            console.log('carol pending 2 after alice dismiss', carolPending.toString());
+            await TimeHelper.advanceTimeAndBlock(100);
+            latestTime = await TimeHelper.latestBlockTimestamp();
+            bobPending = await this.mining.pendingMetis(latestTime, 0, this.bob.address);
+            console.log('bob pending 3 after alice dismiss', bobPending.toString());
+            carolPending = await this.mining.pendingMetis(latestTime, 0, this.carol.address);
+            console.log('carol pending 3 after alice dismiss', carolPending.toString());
+            // bob withdraw all
+            await this.mining.connect(this.bob).withdraw(
+                this.alice.address,
+                '0',
+                '2000000000000000000000',
+            );
+            // carol withdraw all
+            await this.mining.connect(this.carol).withdraw(
+                ADDRESS_ZERO,
+                '0',
+                '2000000000000000000000',
+            );
+            const recorderBal = await this.metis.balanceOf(this.DACRecorder.address);
+            console.log('recorder balance', recorderBal.toString());
+        });
     });
 });

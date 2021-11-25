@@ -992,7 +992,7 @@ contract DAC is IDAC, AccessControlUpgradeable, OwnableUpgradeable {
         DISMISS_LIMIT = 20;
         MIN_DEPOSIT = 10 * 1e18;
         MAX_DEPOSIT = 2000 * 1e18;
-        onlyInvitedUser = true;
+        onlyInvitedUser = false;
         ADMIN_ROLE = "admin";
         MINING_ROLE = "mining";
         WHITELIST_ROLE = "whitelist";
