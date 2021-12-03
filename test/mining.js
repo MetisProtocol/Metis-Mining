@@ -794,6 +794,12 @@ describe("Mining Contract", function () {
             );
             const recorderBal = await this.metis.balanceOf(this.DACRecorder.address);
             console.log('recorder balance', recorderBal.toString());
+            const aliceShare = await this.vault.shares(this.alice.address);
+            console.log('alice share', aliceShare.toString());
+            const bobShare = await this.vault.shares(this.bob.address);
+            console.log('bob share', bobShare.toString());
+            const carolShare = await this.vault.shares(this.carol.address);
+            console.log('carol share', carolShare.toString());
         });
     });
 });
